@@ -1,0 +1,3 @@
+2026-01-12 17:43:36 [ERROR]: ❌ MongoDB Connection Error: MongooseServerSelectionError: connect ECONNREFUSED ::1:27017, connect ECONNREFUSED 127.0.0.1:27017 
+2026-01-12 17:48:30 [ERROR]: ❌ MongoDB Connection Error: MongooseServerSelectionError: connect ECONNREFUSED ::1:27017, connect ECONNREFUSED 127.0.0.1:27017 
+2026-01-12 17:54:38 [ERROR]: ❌ MongoDB Connection Error: MongoServerError: bad auth : Authentication failed. 

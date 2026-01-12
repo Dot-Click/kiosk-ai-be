@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\kiosk-be\\kiosk\\logs\\.364a739d8125deadca27126f7d642dc6fd9b33b3-audit.json",
+    "files": [
+        {
+            "date": 1768221418359,
+            "name": "C:\\kiosk-be\\kiosk\\logs\\combined-2026-01-12.log",
+            "hash": "cd8fffef4a0da4f9434dcc7008eaf0c1a0d36b944eabcd3b21b7a84bfaac7fed"
+        }
+    ],
+    "hashType": "sha256"
+}
