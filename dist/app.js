@@ -77,7 +77,7 @@ class App {
         const corsOptions = {
             origin: process.env.NODE_ENV === 'production'
                 ? [process.env.FRONTEND_URL, 'kiosk-ai.vercel.app']
-                : ['https://kiosk-ai.vercel.app', 'https://kiosk-ai.vercel.app', 'https://localhost:5173'],
+                : ['https://kiosk-ai.vercel.app', 'https://kiosk-ai.vercel.app', 'https://kiosk-ai.vercel.app'],
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
