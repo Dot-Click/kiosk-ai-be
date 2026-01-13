@@ -714,29 +714,97 @@ app.get('/api/v1/upload/check/:code', async (req: Request, res: Response) => {
   }
 });
 
-// Get image
+// // Get image
+// app.get('/api/v1/upload/image/:code', async (req: Request, res: Response) => {
+//   try {
+//     const { code } = req.params;
+    
+//     console.log(`📷 Getting image for code: ${code}`);
+    
+//     // Try to get file path from database
+//     let filePath: string | null = null;
+//     if (db) {
+//       const upload = await db.collection('uploads').findOne({ code });
+//       if (upload && upload.filePath) {
+//         filePath = upload.filePath;
+//       }
+//     }
+    
+//     if (filePath && fs.existsSync(filePath)) {
+//       // Serve the actual uploaded file
+//       res.sendFile(path.resolve(filePath));
+//     } else {
+//       // Return placeholder
+//       res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image');
+//     }
+    
+//   } catch (error: any) {
+//     console.error('❌ Get image error:', error);
+//     res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+//   }
+// });
+
+// In your server.ts, update the getImage function:
+
+// Get image - FIXED to serve actual file
 app.get('/api/v1/upload/image/:code', async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
     
     console.log(`📷 Getting image for code: ${code}`);
     
-    // Try to get file path from database
-    let filePath: string | null = null;
-    if (db) {
-      const upload = await db.collection('uploads').findOne({ code });
-      if (upload && upload.filePath) {
-        filePath = upload.filePath;
+    // Default to placeholder
+    const placeholder = 'https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image';
+    
+    // Check memory storage first (no database)
+    if (global.uploads && global.uploads[code]) {
+      const upload = global.uploads[code];
+      
+      // Try to find the uploaded file in uploads directory
+      const uploadDir = path.join(process.cwd(), 'uploads');
+      const files = fs.readdirSync(uploadDir);
+      
+      // Find file by code or timestamp
+      const foundFile = files.find(file => {
+        // Files are named like: image-1768312345678-123456789.jpg
+        return file.includes(code) || file.includes(code.slice(-6));
+      });
+      
+      if (foundFile) {
+        const filePath = path.join(uploadDir, foundFile);
+        if (fs.existsSync(filePath)) {
+          console.log(`✅ Serving actual image: ${foundFile}`);
+          
+          // Determine content type
+          const ext = path.extname(foundFile).toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+          };
+          
+          const contentType = mimeTypes[ext] || 'image/jpeg';
+          res.setHeader('Content-Type', contentType);
+          
+          // Stream the file
+          const fileStream = fs.createReadStream(filePath);
+          fileStream.pipe(res);
+          
+          fileStream.on('error', (err) => {
+            console.error('File stream error:', err);
+            res.redirect(placeholder);
+          });
+          
+          return;
+        }
       }
     }
     
-    if (filePath && fs.existsSync(filePath)) {
-      // Serve the actual uploaded file
-      res.sendFile(path.resolve(filePath));
-    } else {
-      // Return placeholder
-      res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image');
-    }
+    // If no file found, redirect to placeholder
+    console.log(`⚠️ No actual image found for code: ${code}, using placeholder`);
+    res.redirect(placeholder);
     
   } catch (error: any) {
     console.error('❌ Get image error:', error);
