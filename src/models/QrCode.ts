@@ -59,7 +59,7 @@ QRCodeSchema.statics.generateQR = async function(): Promise<IQRCode> {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   
   // CRITICAL FIX: Use FRONTEND_URL from .env
-  const frontendUrl = process.env.FRONTEND_URL || 'http://kiosk-ai.vercel.app';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://kiosk-ai.vercel.app';
   const uploadUrl = `${frontendUrl}/upload?code=${code}`;
   
   console.log('🔗 Generating QR with:', {

@@ -35,7 +35,7 @@ class UploadController {
         throw new ApiError(404, 'Invalid or expired QR code');
       }
 
-      const imageUrl = `${process.env.BASE_URL || 'http://nodejs-production-25045463.up.railway.app'}/uploads/images/${req.file.filename}`;
+      const imageUrl = `${process.env.BASE_URL || 'https://kiosk-ai-be-production.up.railway.app'}/uploads/images/${req.file.filename}`;
       
       // Check if image already exists for this code
       const existingImage = await UploadedImage.findOne({ code });

@@ -16,7 +16,7 @@ class QRController {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       
       // Create upload URL for frontend port 4001
-      const uploadUrl = `${process.env.FRONTEND_URL || 'http://kiosk-ai.vercel.app'}/upload?code=${code}`;
+      const uploadUrl = `${process.env.FRONTEND_URL || 'https://kiosk-ai.vercel.app'}/upload?code=${code}`;
       
       // Generate QR code image
       const qrImageUrl = await QRCodeGenerator.toDataURL(uploadUrl, {

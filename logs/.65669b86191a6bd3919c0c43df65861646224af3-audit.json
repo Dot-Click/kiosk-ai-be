@@ -9,6 +9,11 @@
             "date": 1768221418345,
             "name": "C:\\kiosk-be\\kiosk\\logs\\error-2026-01-12.log",
             "hash": "8b20014a801432f1d30a67a3378eceb6e0cb2f8ab859cfb28e8d2b53d3db4b54"
+        },
+        {
+            "date": 1768292069157,
+            "name": "C:\\kiosk-be\\kiosk\\logs\\error-2026-01-13.log",
+            "hash": "20d198725fd1cf4784d98f47c7e4784e9e3dfc96eea679f46df0f17bffd64187"
         }
     ],
     "hashType": "sha256"

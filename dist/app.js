@@ -77,7 +77,7 @@ class App {
         const corsOptions = {
             origin: process.env.NODE_ENV === 'production'
                 ? [process.env.FRONTEND_URL, 'kiosk-ai.vercel.app']
-                : ['http://kiosk-ai.vercel.app', 'http://kiosk-ai.vercel.app', 'http://localhost:5173'],
+                : ['https://kiosk-ai.vercel.app', 'https://kiosk-ai.vercel.app', 'https://localhost:5173'],
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -121,7 +121,7 @@ class App {
                 version: '1.0.0',
                 timestamp: new Date().toISOString(),
                 documentation: {
-                    baseUrl: process.env.API_URL || 'http://nodejs-production-25045463.up.railway.app',
+                    baseUrl: process.env.API_URL || 'https://kiosk-ai-be-production.up.railway.app',
                     endpoints: {
                         health: 'GET /api/v1/health',
                         generateQR: 'POST /api/v1/qr/generate',
@@ -181,10 +181,10 @@ class App {
         this.server.listen(port, () => {
             logger_1.logger.info(`🚀 Server running on port ${port}`);
             logger_1.logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-            logger_1.logger.info(`🔗 Base URL: ${process.env.API_URL || `http://localhost:${port}`}`);
-            logger_1.logger.info(`📁 Uploads: ${process.env.API_URL || `http://localhost:${port}`}/uploads/images`);
-            logger_1.logger.info(`📊 Health: ${process.env.API_URL || `http://localhost:${port}`}/api/v1/health`);
-            logger_1.logger.info(`🔐 CORS Origin: ${process.env.FRONTEND_URL || 'http://kiosk-ai.vercel.app'}`);
+            logger_1.logger.info(`🔗 Base URL: ${process.env.API_URL || `https://localhost:${port}`}`);
+            logger_1.logger.info(`📁 Uploads: ${process.env.API_URL || `https://localhost:${port}`}/uploads/images`);
+            logger_1.logger.info(`📊 Health: ${process.env.API_URL || `https://localhost:${port}`}/api/v1/health`);
+            logger_1.logger.info(`🔐 CORS Origin: ${process.env.FRONTEND_URL || 'https://kiosk-ai.vercel.app'}`);
         });
         // Handle server errors
         this.server.on('error', (error) => {
