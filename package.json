@@ -2,12 +2,12 @@
   "name": "time2cleann-be",
   "version": "1.0.0",
   "description": "time2cleann backend",
-  "main": "./src/index.ts",
+  "main": "./src/server.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npx tsc",
-    "dev": "ts-node ./src/index.ts",
-    "start": "ts-node ./src/index.ts",
+    "dev": "ts-node ./src/server.ts",
+    "start": "ts-node ./src/server.ts",
     "swagger": "ts-node ./swagger.ts"
   },
   "repository": {
