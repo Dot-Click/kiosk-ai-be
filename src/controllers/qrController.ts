@@ -400,13 +400,55 @@ class QRController {
     }
   };
 
-  // Validate QR code - FIXED: Accept any code length
+  // // Validate QR code - FIXED: Accept any code length
+  // validateQR = async (req: Request, res: Response, next: NextFunction) => {
+  //   try {
+  //     const { code } = req.params;
+      
+  //     if (!code) {
+  //       throw new ApiError(400, 'QR code is required');
+  //     }
+      
+  //     console.log('🔍 Validating QR code:', code);
+      
+  //     // Check if QR code exists and is valid
+  //     const qrCode = await QRCode.findOne({ 
+  //       code, 
+  //       isActive: true,
+  //       expiresAt: { $gt: new Date() }
+  //     });
+      
+  //     const isValid = !!qrCode;
+      
+  //     console.log(`✅ QR Code ${code} is ${isValid ? 'valid' : 'invalid/expired'}`);
+      
+  //     res.json({
+  //       success: true,
+  //       message: isValid ? 'QR code is valid' : 'QR code not found or expired',
+  //       data: {
+  //         code,
+  //         isValid,
+  //         expiresAt: qrCode?.expiresAt || null,
+  //         uploadUrl: qrCode?.uploadUrl || null
+  //       }
+  //     });
+      
+  //   } catch (error: any) {
+  //     console.error('❌ QR validation failed:', error);
+  //     next(error);
+  //   }
+  // };
+
+   // Validate QR code - FIXED: Don't throw 404, just return isValid: false
   validateQR = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { code } = req.params;
       
       if (!code) {
-        throw new ApiError(400, 'QR code is required');
+        return res.status(400).json({
+          success: false,
+          error: 'QR code is required'
+        });
       }
       
       console.log('🔍 Validating QR code:', code);
@@ -422,7 +464,8 @@ class QRController {
       
       console.log(`✅ QR Code ${code} is ${isValid ? 'valid' : 'invalid/expired'}`);
       
-      res.json({
+      // Always return 200, just with isValid flag
+      res.status(200).json({
         success: true,
         message: isValid ? 'QR code is valid' : 'QR code not found or expired',
         data: {
@@ -435,7 +478,15 @@ class QRController {
       
     } catch (error: any) {
       console.error('❌ QR validation failed:', error);
-      next(error);
+      // Don't throw error, return graceful response
+      res.status(200).json({
+        success: true,
+        message: 'QR code validation check failed',
+        data: {
+          isValid: false,
+          code: req.params.code
+        }
+      });
     }
   };
 
