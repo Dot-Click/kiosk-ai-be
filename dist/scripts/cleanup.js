@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
-const UploadedImage_1 = __importDefault(require("../models/UploadedImage"));
+const UploadedImage_1 = require("../models/UploadedImage");
 const QrCode_1 = __importDefault(require("../models/QrCode"));
 const logger_1 = require("../functions/logger");
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -26,7 +26,7 @@ function cleanup() {
             yield mongoose_1.default.connect(process.env.MONGODB_URI);
             logger_1.logger.info('Connected to MongoDB');
             // Cleanup expired uploads
-            const cleanedCount = yield UploadedImage_1.default.cleanupExpired();
+            const cleanedCount = yield UploadedImage_1.UploadedImage.cleanupExpired();
             logger_1.logger.info(`Cleaned up ${cleanedCount} expired images`);
             // Find and deactivate expired QR codes
             const expiredQRCodes = yield QrCode_1.default.updateMany({

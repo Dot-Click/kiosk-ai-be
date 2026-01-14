@@ -1,4 +1,11 @@
 "use strict";
+// // // src/controllers/uploadController.ts
+// // import { Request, Response, NextFunction } from 'express';
+// // import UploadedImage from '../models/UploadedImage';
+// // import QRCode from '../models/QrCode';
+// // import fs from 'fs/promises';
+// // import fsSync from 'fs'; 
+// // import { ApiError } from '../utils/ApiError';
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -12,205 +19,222 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const UploadedImage_1 = __importDefault(require("../models/UploadedImage"));
-const QrCode_1 = __importDefault(require("../models/QrCode"));
-const promises_1 = __importDefault(require("fs/promises"));
+exports.cleanupOldFiles = exports.getImage = exports.checkUpload = exports.uploadImage = void 0;
+const db_1 = require("../config/db");
 const fs_1 = __importDefault(require("fs"));
-const ApiError_1 = require("../utils/ApiError");
-class UploadController {
-    constructor() {
-        // Upload image from mobile
-        this.uploadImage = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+const path_1 = __importDefault(require("path"));
+const cloudinary_1 = require("../utils/cloudinary");
+// In-memory storage fallback
+const uploads = new Map();
+const uploadImage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { code } = req.body;
+        if (!code) {
+            return res.status(400).json({
+                success: false,
+                error: 'Code is required'
+            });
+        }
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No image file uploaded'
+            });
+        }
+        console.log(`✅ Image uploaded for code: ${code}`);
+        let imageUrl;
+        let cloudinaryUrl;
+        // Upload to Cloudinary if configured
+        if (process.env.CLOUDINARY_CLOUD_NAME) {
             try {
-                const { code } = req.body;
-                console.log(`📱 Upload request for code: ${code} from IP: ${req.ip}`);
-                if (!code || !/^\d{6}$/.test(code)) {
-                    throw new ApiError_1.ApiError(400, 'Valid 6-digit code is required');
-                }
-                if (!req.file) {
-                    throw new ApiError_1.ApiError(400, 'No image file uploaded');
-                }
-                // Validate QR code
-                const qrCode = yield QrCode_1.default.findOne({
-                    code,
-                    isActive: true,
-                    expiresAt: { $gt: new Date() }
-                });
-                if (!qrCode) {
-                    // Delete uploaded file
-                    yield promises_1.default.unlink(req.file.path).catch(() => { });
-                    throw new ApiError_1.ApiError(404, 'Invalid or expired QR code');
-                }
-                const imageUrl = `${process.env.BASE_URL || 'https://kiosk-ai-be-production.up.railway.app'}/uploads/images/${req.file.filename}`;
-                // Check if image already exists for this code
-                const existingImage = yield UploadedImage_1.default.findOne({ code });
-                if (existingImage) {
-                    // Delete old image file
-                    yield promises_1.default.unlink(existingImage.imagePath).catch(() => { });
-                    // Update existing record
-                    existingImage.imageUrl = imageUrl;
-                    existingImage.imagePath = req.file.path;
-                    existingImage.fileName = req.file.originalname;
-                    existingImage.fileSize = req.file.size;
-                    existingImage.mimeType = req.file.mimetype;
-                    existingImage.status = 'uploaded';
-                    existingImage.uploadedBy = req.ip || 'unknown';
-                    yield existingImage.save();
-                    console.log(`✅ Image updated for code: ${code}`);
-                    // Deactivate QR code
-                    yield QrCode_1.default.updateOne({ code }, { isActive: false });
-                    return res.json({
-                        success: true,
-                        message: 'Image updated successfully',
-                        data: {
-                            code,
-                            imageUrl,
-                            fileName: existingImage.fileName,
-                            fileSize: this.formatFileSize(existingImage.fileSize),
-                            status: 'updated',
-                            uploadedAt: existingImage.updatedAt
-                        }
-                    });
-                }
-                // Create new image record
-                const uploadedImage = new UploadedImage_1.default({
-                    code,
-                    imageUrl,
-                    imagePath: req.file.path,
-                    fileName: req.file.originalname,
-                    fileSize: req.file.size,
-                    mimeType: req.file.mimetype,
-                    status: 'uploaded',
-                    uploadedBy: req.ip || 'unknown',
-                    metadata: {
-                        originalName: req.file.originalname,
-                        uploadTime: new Date()
-                    }
-                });
-                yield uploadedImage.save();
-                // Deactivate QR code
-                yield QrCode_1.default.updateOne({ code }, { isActive: false });
-                console.log(`✅ New image uploaded for code: ${code}, Size: ${req.file.size} bytes`);
-                res.status(201).json({
-                    success: true,
-                    message: 'Image uploaded successfully',
-                    data: {
-                        code,
-                        imageUrl,
-                        fileName: uploadedImage.fileName,
-                        fileSize: this.formatFileSize(uploadedImage.fileSize),
-                        status: 'uploaded',
-                        uploadedAt: uploadedImage.createdAt,
-                        expiresAt: uploadedImage.expiresAt
-                    }
-                });
+                cloudinaryUrl = yield (0, cloudinary_1.uploadToCloudinary)(req.file.path);
+                imageUrl = cloudinaryUrl;
+                console.log(`☁️ Image uploaded to Cloudinary: ${cloudinaryUrl}`);
             }
-            catch (error) {
-                console.error(`❌ Upload failed: ${error.message}`);
-                // Clean up uploaded file if error occurred
-                if (req.file) {
-                    yield promises_1.default.unlink(req.file.path).catch(() => { });
-                }
-                next(error);
+            catch (cloudinaryError) {
+                console.error('Cloudinary upload failed, using local:', cloudinaryError);
+                imageUrl = `https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/${code}`;
             }
-        });
-        // Check if image is uploaded for a code
-        this.checkUpload = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { code } = req.params;
-                console.log(`🔍 Checking upload for code: ${code}`);
-                if (!code || !/^\d{6}$/.test(code)) {
-                    throw new ApiError_1.ApiError(400, 'Invalid QR code format. Must be 6 digits.');
-                }
-                const image = yield UploadedImage_1.default.findOne({ code, status: 'uploaded' });
-                if (!image) {
-                    return res.json({
-                        success: true,
-                        message: 'No image found',
-                        data: {
-                            exists: false,
-                            code,
-                            message: 'No image uploaded for this code yet'
-                        }
-                    });
-                }
-                // Check if image file still exists
-                try {
-                    yield promises_1.default.access(image.imagePath);
-                }
-                catch (error) {
-                    // File doesn't exist, update status
-                    image.status = 'expired';
-                    yield image.save();
-                    return res.json({
-                        success: true,
-                        message: 'Image expired or deleted',
-                        data: {
-                            exists: false,
-                            code,
-                            message: 'Image file not found on server'
-                        }
-                    });
-                }
-                res.json({
-                    success: true,
-                    message: 'Image found',
-                    data: {
-                        exists: true,
-                        code,
-                        imageUrl: image.imageUrl,
-                        fileName: image.fileName,
-                        fileSize: this.formatFileSize(image.fileSize),
-                        mimeType: image.mimeType,
-                        uploadedAt: image.createdAt,
-                        expiresAt: image.expiresAt,
-                        status: image.status
-                    }
-                });
-            }
-            catch (error) {
-                console.error(`❌ Check upload failed: ${error.message}`);
-                next(error);
-            }
-        });
-        // Get image by code
-        this.getImage = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { code } = req.params;
-                const image = yield UploadedImage_1.default.findOne({ code, status: 'uploaded' });
-                if (!image) {
-                    throw new ApiError_1.ApiError(404, 'Image not found');
-                }
-                // Check if file exists
-                try {
-                    yield promises_1.default.access(image.imagePath);
-                }
-                catch (_a) {
-                    throw new ApiError_1.ApiError(404, 'Image file not found on server');
-                }
-                // Stream the image file
-                const stream = fs_1.default.createReadStream(image.imagePath);
-                res.setHeader('Content-Type', image.mimeType);
-                stream.pipe(res);
-                stream.on('error', (error) => {
-                    console.error(`❌ Stream error for image ${code}: ${error.message}`);
-                    next(new ApiError_1.ApiError(500, 'Error streaming image'));
-                });
-            }
-            catch (error) {
-                next(error);
+        }
+        else {
+            imageUrl = `https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/${code}`;
+        }
+        const uploadData = {
+            code,
+            imageUrl,
+            fileName: req.file.filename,
+            originalName: req.file.originalname,
+            filePath: req.file.path,
+            fileSize: req.file.size,
+            mimeType: req.file.mimetype,
+            uploadedAt: new Date(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+            status: 'uploaded',
+            uploadedBy: req.ip || 'unknown'
+        };
+        if (cloudinaryUrl) {
+            uploadData.cloudinaryUrl = cloudinaryUrl;
+        }
+        // Save to database if available
+        const db = (0, db_1.getDB)();
+        if (db) {
+            const result = yield db.collection('uploads').insertOne(uploadData);
+            uploadData._id = result.insertedId;
+            console.log(`💾 Saved to database for code: ${code}`);
+        }
+        else {
+            uploads.set(code, uploadData);
+            console.log(`⚠️  No database, storing in memory for code: ${code}`);
+        }
+        res.status(200).json({
+            success: true,
+            message: 'Image uploaded successfully',
+            data: {
+                code: code,
+                imageUrl: imageUrl,
+                cloudinaryUrl: cloudinaryUrl,
+                fileName: uploadData.originalName,
+                fileSize: uploadData.fileSize,
+                uploadedAt: uploadData.uploadedAt.toISOString()
             }
         });
     }
-    // Helper method
-    formatFileSize(bytes) {
-        if (bytes < 1024)
-            return bytes + ' bytes';
-        else if (bytes < 1048576)
-            return (bytes / 1024).toFixed(1) + ' KB';
-        else
-            return (bytes / 1048576).toFixed(1) + ' MB';
+    catch (error) {
+        console.error('❌ Upload error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Upload failed: ' + error.message
+        });
     }
-}
-exports.default = new UploadController();
+});
+exports.uploadImage = uploadImage;
+const checkUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { code } = req.params;
+        console.log(`🔍 Checking upload for code: ${code}`);
+        let uploadData = null;
+        const db = (0, db_1.getDB)();
+        if (db) {
+            const result = yield db.collection('uploads').findOne({ code });
+            // Type assertion or conversion
+            uploadData = result;
+        }
+        else {
+            uploadData = uploads.get(code) || null;
+        }
+        if (uploadData) {
+            // Check if file still exists locally (if not using Cloudinary)
+            if (!uploadData.cloudinaryUrl && !fs_1.default.existsSync(uploadData.filePath)) {
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        exists: false,
+                        code: code,
+                        message: 'Image file not found'
+                    }
+                });
+            }
+            res.status(200).json({
+                success: true,
+                data: {
+                    exists: true,
+                    code: code,
+                    imageUrl: uploadData.imageUrl,
+                    cloudinaryUrl: uploadData.cloudinaryUrl,
+                    fileName: uploadData.originalName || uploadData.fileName,
+                    uploadedAt: uploadData.uploadedAt,
+                    message: 'Image found'
+                }
+            });
+        }
+        else {
+            res.status(200).json({
+                success: true,
+                data: {
+                    exists: false,
+                    code: code,
+                    message: 'No image uploaded for this code yet'
+                }
+            });
+        }
+    }
+    catch (error) {
+        console.error('❌ Check upload error:', error);
+        res.status(200).json({
+            success: true,
+            data: {
+                exists: false,
+                code: req.params.code,
+                message: 'Check failed'
+            }
+        });
+    }
+});
+exports.checkUpload = checkUpload;
+const getImage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { code } = req.params;
+        console.log(`📷 Getting image for code: ${code}`);
+        let uploadData = null;
+        const db = (0, db_1.getDB)();
+        if (db) {
+            const result = yield db.collection('uploads').findOne({ code });
+            uploadData = result;
+        }
+        else {
+            uploadData = uploads.get(code) || null;
+        }
+        // Redirect to Cloudinary URL if available
+        if (uploadData === null || uploadData === void 0 ? void 0 : uploadData.cloudinaryUrl) {
+            return res.redirect(uploadData.cloudinaryUrl);
+        }
+        // Serve local file
+        if (uploadData && fs_1.default.existsSync(uploadData.filePath)) {
+            res.setHeader('Content-Type', uploadData.mimeType);
+            const fileStream = fs_1.default.createReadStream(uploadData.filePath);
+            fileStream.pipe(res);
+            fileStream.on('error', (err) => {
+                console.error('File stream error:', err);
+                res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+            });
+            return;
+        }
+        // Return placeholder
+        console.log(`⚠️ No image found for code: ${code}, using placeholder`);
+        res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image');
+    }
+    catch (error) {
+        console.error('❌ Get image error:', error);
+        res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+    }
+});
+exports.getImage = getImage;
+// Clean up old files periodically
+const cleanupOldFiles = () => {
+    const now = new Date();
+    const uploadDir = path_1.default.join(process.cwd(), 'uploads');
+    try {
+        if (!fs_1.default.existsSync(uploadDir))
+            return;
+        const files = fs_1.default.readdirSync(uploadDir);
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        files.forEach(file => {
+            const filePath = path_1.default.join(uploadDir, file);
+            try {
+                const stats = fs_1.default.statSync(filePath);
+                if (stats.mtime < oneDayAgo) {
+                    fs_1.default.unlinkSync(filePath);
+                    console.log(`🧹 Cleaned up old file: ${file}`);
+                }
+            }
+            catch (error) {
+                console.error(`Error cleaning up file ${file}:`, error);
+            }
+        });
+    }
+    catch (error) {
+        console.error('Cleanup error:', error);
+    }
+};
+exports.cleanupOldFiles = cleanupOldFiles;
 //# sourceMappingURL=uploadController.js.map

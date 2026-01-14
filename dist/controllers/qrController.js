@@ -1,4 +1,8 @@
 "use strict";
+// // // src/controllers/qrController.ts
+// // import { Request, Response, NextFunction } from 'express';
+// // import QRCode from '../models/QrCode';
+// // import { ApiError } from '../utils/ApiError';
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,142 +12,124 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const QrCode_1 = __importDefault(require("../models/QrCode"));
-const ApiError_1 = require("../utils/ApiError");
-// Use require for qrcode to avoid TypeScript issues
-const QRCodeGenerator = require('qrcode');
-class QRController {
-    constructor() {
-        // Generate new QR code
-        this.generateQR = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                console.log('🔄 Generating QR code...');
-                // Generate code
-                const code = Math.floor(100000 + Math.random() * 900000).toString();
-                // Create upload URL for frontend port 4001
-                const uploadUrl = `${process.env.FRONTEND_URL || 'https://kiosk-ai.vercel.app'}/upload?code=${code}`;
-                // Generate QR code image
-                const qrImageUrl = yield QRCodeGenerator.toDataURL(uploadUrl, {
-                    width: 300,
-                    margin: 2,
-                    color: {
-                        dark: '#2d2d6d',
-                        light: '#ffffff'
-                    },
-                    errorCorrectionLevel: 'H'
-                });
-                // Create QR code in database
-                const qrCode = new QrCode_1.default({
-                    code,
-                    qrImageUrl,
-                    uploadUrl,
-                    isActive: true,
-                    expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
-                });
-                yield qrCode.save();
-                console.log('✅ QR Code generated:', code);
-                console.log('📱 Upload URL:', uploadUrl);
-                // Return the data
-                res.json({
-                    success: true,
-                    message: 'QR code generated successfully',
-                    data: {
-                        code: qrCode.code,
-                        qrImageUrl: qrCode.qrImageUrl,
-                        uploadUrl: qrCode.uploadUrl,
-                        expiresAt: qrCode.expiresAt,
-                        createdAt: qrCode.createdAt
-                    }
-                });
-            }
-            catch (error) {
-                console.error('❌ QR generation failed:', error);
-                next(new ApiError_1.ApiError(500, 'Failed to generate QR code'));
-            }
-        });
-        // Validate QR code
-        this.validateQR = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { code } = req.params;
-                if (!code || code.length !== 6) {
-                    throw new ApiError_1.ApiError(400, 'Invalid QR code format');
-                }
-                // Check if QR code exists and is valid
-                const qrCode = yield QrCode_1.default.findOne({
-                    code,
-                    isActive: true,
-                    expiresAt: { $gt: new Date() }
-                });
-                if (!qrCode) {
-                    throw new ApiError_1.ApiError(404, 'QR code not found or expired');
-                }
-                res.json({
-                    success: true,
-                    message: 'QR code is valid',
-                    data: {
-                        code,
-                        isValid: true,
-                        expiresAt: qrCode.expiresAt
-                    }
-                });
-            }
-            catch (error) {
-                next(error);
-            }
-        });
-        // Get QR code details
-        this.getQRDetails = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { code } = req.params;
-                const qrCode = yield QrCode_1.default.findOne({ code });
-                if (!qrCode) {
-                    throw new ApiError_1.ApiError(404, 'QR code not found');
-                }
-                const isValid = qrCode.isActive && qrCode.expiresAt > new Date();
-                res.json({
-                    success: true,
-                    message: 'QR code details retrieved',
-                    data: {
-                        code: qrCode.code,
-                        isActive: qrCode.isActive,
-                        expiresAt: qrCode.expiresAt,
-                        createdAt: qrCode.createdAt,
-                        isValid: isValid,
-                        uploadUrl: qrCode.uploadUrl
-                    }
-                });
-            }
-            catch (error) {
-                next(error);
-            }
-        });
-        // Deactivate QR code
-        this.deactivateQR = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { code } = req.params;
-                const qrCode = yield QrCode_1.default.findOneAndUpdate({ code }, { isActive: false }, { new: true });
-                if (!qrCode) {
-                    throw new ApiError_1.ApiError(404, 'QR code not found');
-                }
-                res.json({
-                    success: true,
-                    message: 'QR code deactivated',
-                    data: {
-                        code: qrCode.code,
-                        isActive: qrCode.isActive,
-                        deactivatedAt: new Date()
-                    }
-                });
-            }
-            catch (error) {
-                next(error);
+exports.getQRDetails = exports.validateQR = exports.generateQR = void 0;
+const db_1 = require("../config/db");
+// In-memory storage fallback
+const qrCodes = new Map();
+const generateQR = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { data = 'kiosk-upload' } = req.body;
+        const code = Date.now().toString();
+        const uploadUrl = `https://kiosk-ai.vercel.app/upload?code=${code}`;
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uploadUrl)}`;
+        console.log(`✅ QR generated for code: ${code}`);
+        const qrData = {
+            code,
+            uploadUrl,
+            qrImageUrl,
+            isActive: true,
+            createdAt: new Date(),
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+        };
+        // Save to database if available
+        const db = (0, db_1.getDB)();
+        if (db) {
+            yield db.collection('qrcodes').insertOne(qrData);
+        }
+        else {
+            qrCodes.set(code, qrData);
+        }
+        res.status(200).json({
+            success: true,
+            data: {
+                id: code,
+                code: code,
+                url: qrImageUrl,
+                uploadUrl: uploadUrl
             }
         });
     }
-}
-exports.default = new QRController();
+    catch (error) {
+        console.error('QR generation error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+exports.generateQR = generateQR;
+const validateQR = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { code } = req.params;
+        console.log(`🔍 Validating QR code: ${code}`);
+        // Check if QR is valid (not expired and active)
+        const now = new Date();
+        let isValid = false;
+        const db = (0, db_1.getDB)();
+        if (db) {
+            const qrCode = yield db.collection('qrcodes').findOne({
+                code,
+                isActive: true,
+                expiresAt: { $gt: now }
+            });
+            isValid = !!qrCode;
+        }
+        else {
+            const qrCode = qrCodes.get(code);
+            isValid = (qrCode === null || qrCode === void 0 ? void 0 : qrCode.isActive) && qrCode.expiresAt > now;
+        }
+        res.status(200).json({
+            success: true,
+            data: {
+                isValid: isValid,
+                code: code,
+                message: isValid ? 'QR code is valid' : 'QR code expired or invalid'
+            }
+        });
+    }
+    catch (error) {
+        console.error('QR validation error:', error);
+        res.status(200).json({
+            success: true,
+            data: {
+                isValid: false,
+                code: req.params.code,
+                message: 'QR code check failed'
+            }
+        });
+    }
+});
+exports.validateQR = validateQR;
+const getQRDetails = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { code } = req.params;
+        let qrData = null;
+        const db = (0, db_1.getDB)();
+        if (db) {
+            qrData = yield db.collection('qrcodes').findOne({ code });
+        }
+        else {
+            qrData = qrCodes.get(code) || null;
+        }
+        if (!qrData) {
+            return res.status(404).json({
+                success: false,
+                error: 'QR code not found'
+            });
+        }
+        res.status(200).json({
+            success: true,
+            data: qrData
+        });
+    }
+    catch (error) {
+        console.error('Get QR details error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+exports.getQRDetails = getQRDetails;
 //# sourceMappingURL=qrController.js.map

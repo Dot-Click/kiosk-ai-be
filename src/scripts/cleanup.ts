@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import UploadedImage from '../models/UploadedImage';
+import {UploadedImage} from '../models/UploadedImage';
 import QRCode from '../models/QrCode';
 import { logger } from '../functions/logger';
 import dotenv from 'dotenv';
