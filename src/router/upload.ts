@@ -15,12 +15,14 @@
 
     import { Router } from 'express';
 import { uploadSingle } from '../config/multer';
+import { imageCorsMiddleware } from '../middleware/imageCors';
 import { uploadImage, checkUpload, getImage } from '../controllers/uploadController';
 
 const router = Router();
 
 router.post('/upload', uploadSingle('image'), uploadImage);
 router.get('/check/:code', checkUpload);
+router.get('/image/:code', imageCorsMiddleware, getImage);
 router.get('/image/:code', getImage);
 
 export default router;

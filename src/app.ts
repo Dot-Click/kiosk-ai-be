@@ -8,6 +8,7 @@ import { corsOptions } from './config/cors';
 import qrRoutes from './router/qr';
 import uploadRoutes from './router/upload';
 import { cleanupOldFiles } from './controllers/uploadController';
+import { imageCorsMiddleware } from './middleware/imageCors';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ connectDB();
 // Routes
 app.use('/api/v1/qr', qrRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/upload/image/:code', imageCorsMiddleware);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
