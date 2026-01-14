@@ -650,128 +650,50 @@ export const checkUpload = async (req: Request, res: Response) => {
   }
 };
 
-// export const getImage = async (req: Request, res: Response) => {
-//   try {
-//     const { code } = req.params;
-    
-//     console.log(`📷 Getting image for code: ${code}`);
-    
-//     let uploadData: UploadData | null = null;
-//     const db = getDB();
-    
-//     if (db) {
-//       const result = await db.collection('uploads').findOne({ code });
-//       uploadData = result as UploadData;
-//     } else {
-//       uploadData = uploads.get(code) || null;
-//     }
-    
-//     // Redirect to Cloudinary URL if available
-//     if (uploadData?.cloudinaryUrl) {
-//       return res.redirect(uploadData.cloudinaryUrl);
-//     }
-    
-//     // Serve local file
-//     if (uploadData && fs.existsSync(uploadData.filePath)) {
-//       res.setHeader('Content-Type', uploadData.mimeType);
-//       const fileStream = fs.createReadStream(uploadData.filePath);
-//       fileStream.pipe(res);
-      
-//       fileStream.on('error', (err) => {
-//         console.error('File stream error:', err);
-//         res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
-//       });
-//       return;
-//     }
-    
-//     // Return placeholder
-//     console.log(`⚠️ No image found for code: ${code}, using placeholder`);
-//     res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image');
-    
-//   } catch (error: any) {
-//     console.error('❌ Get image error:', error);
-//     res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
-//   }
-// };
-
 export const getImage = async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
+    
     console.log(`📷 Getting image for code: ${code}`);
     
-    // Set CORS headers FIRST - before any other operations
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Timing-Allow-Origin', '*');
-    
-    // Find upload data...
+    let uploadData: UploadData | null = null;
     const db = getDB();
-    let uploadData: any = null;
     
     if (db) {
-      uploadData = await db.collection('uploads').findOne({ code });
+      const result = await db.collection('uploads').findOne({ code });
+      uploadData = result as UploadData;
     } else {
-      uploadData = global.uploads?.[code];
+      uploadData = uploads.get(code) || null;
     }
     
-    if (!uploadData || !uploadData.filePath || !fs.existsSync(uploadData.filePath)) {
-      console.log(`❌ Image not found for code: ${code}`);
-      
-      // Send placeholder with CORS headers
-      const svg = `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="#2d2d6d"/>
-        <text x="50%" y="50%" font-family="Arial" font-size="16" fill="white" 
-              text-anchor="middle" dy=".3em">Image Not Found</text>
-      </svg>`;
-      
-      res.setHeader('Content-Type', 'image/svg+xml');
-      return res.send(svg);
+    // Redirect to Cloudinary URL if available
+    if (uploadData?.cloudinaryUrl) {
+      return res.redirect(uploadData.cloudinaryUrl);
     }
     
-    // Determine content type
-    const ext = path.extname(uploadData.filePath).toLowerCase();
-    const mimeTypes: Record<string, string> = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.gif': 'image/gif',
-      '.webp': 'image/webp'
-    };
+    // Serve local file
+    if (uploadData && fs.existsSync(uploadData.filePath)) {
+      res.setHeader('Content-Type', uploadData.mimeType);
+      const fileStream = fs.createReadStream(uploadData.filePath);
+      fileStream.pipe(res);
+      
+      fileStream.on('error', (err) => {
+        console.error('File stream error:', err);
+        res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+      });
+      return;
+    }
     
-    const contentType = mimeTypes[ext] || uploadData.mimeType || 'image/jpeg';
-    
-    // Set additional headers
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    
-    // Stream the file
-    const fileStream = fs.createReadStream(uploadData.filePath);
-    fileStream.pipe(res);
-    
-    fileStream.on('error', (err) => {
-      console.error('File stream error:', err);
-      res.status(500).send('Error loading image');
-    });
+    // Return placeholder
+    console.log(`⚠️ No image found for code: ${code}, using placeholder`);
+    res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image');
     
   } catch (error: any) {
     console.error('❌ Get image error:', error);
-    
-    // Still send CORS headers even on error
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'image/svg+xml');
-    
-    const svg = `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="#ff6b6b"/>
-      <text x="50%" y="50%" font-family="Arial" font-size="16" fill="white" 
-            text-anchor="middle" dy=".3em">Server Error</text>
-    </svg>`;
-    
-    res.status(500).send(svg);
+    res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
   }
 };
+
 // Clean up old files periodically
 export const cleanupOldFiles = () => {
   const now = new Date();
