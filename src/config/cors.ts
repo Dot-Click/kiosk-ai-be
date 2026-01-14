@@ -3,7 +3,9 @@ import { CorsOptions } from 'cors';
 const allowedOrigins = [
   'https://kiosk-ai.vercel.app',
   'http://localhost:3000',
-  'http://localhost:4001'
+  'http://localhost:4001',
+  '*'
+  
 ];
 
 export const corsOptions: CorsOptions = {
