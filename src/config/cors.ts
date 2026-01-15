@@ -28,10 +28,9 @@ import { CorsOptions } from 'cors';
 
 const allowedOrigins = [
   'https://kiosk-ai.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5173',
-  // REMOVE railway.app from here - it's your backend, not frontend!
-  // REMOVE the '*' wildcard - Railway blocks it
+  'http://localhost:4001',
+  'http://localhost:5000',
+  
 ];
 
 export const corsOptions: CorsOptions = {

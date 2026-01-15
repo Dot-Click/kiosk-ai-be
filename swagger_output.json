@@ -1,99 +1,704 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Time2Clean",
-    "description": "Time2Clean api endpoints",
-    "version": "1.0.0"
+    "title": "Time2Clean API",
+    "description": "Time2Clean API endpoints documentation. This API provides endpoints for QR code generation, image uploads, and user authentication.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Time2Clean Support"
+    }
   },
-  "host": "localhost:8001",
+  "host": "localhost:5000",
   "basePath": "/",
-  "schemes": [
-    "http"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
+  "schemes": ["http", "https"],
+  "consumes": ["application/json", "multipart/form-data"],
+  "produces": ["application/json", "image/jpeg", "image/png", "image/gif"],
+  "tags": [
+    {
+      "name": "QR Code",
+      "description": "QR code generation and validation endpoints"
+    },
+    {
+      "name": "Upload",
+      "description": "Image upload and retrieval endpoints"
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    }
   ],
   "paths": {
-    "/swagger.json": {
+    "/health": {
       "get": {
-        "description": "",
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Check if the API is running and healthy",
+        "produces": ["application/json"],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "API is healthy",
+            "schema": {
+              "$ref": "#/definitions/HealthResponse"
+            }
           }
         }
       }
     },
-    "/auth/register": {
+    "/api/v1/qr/generate": {
       "post": {
-        "description": "",
+        "tags": ["QR Code"],
+        "summary": "Generate a new QR code",
+        "description": "Generates a unique QR code that links to the upload page. The QR code contains a unique timestamp-based code.",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
         "parameters": [
           {
-            "name": "body",
             "in": "body",
+            "name": "body",
+            "description": "Optional data for QR code",
+            "required": false,
             "schema": {
               "type": "object",
               "properties": {
+                "data": {
+                  "type": "string",
+                  "example": "kiosk-upload",
+                  "description": "Optional data to encode in QR code"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR code generated successfully",
+            "schema": {
+              "$ref": "#/definitions/QRGenerateResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/qr/validate/{code}": {
+      "get": {
+        "tags": ["QR Code"],
+        "summary": "Validate a QR code",
+        "description": "Check if a QR code is valid and not expired",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "type": "string",
+            "description": "The QR code to validate",
+            "example": "1768305296192"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation result",
+            "schema": {
+              "$ref": "#/definitions/QRValidateResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/qr/details/{code}": {
+      "get": {
+        "tags": ["QR Code"],
+        "summary": "Get QR code details",
+        "description": "Retrieve detailed information about a QR code including expiration time and status",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "type": "string",
+            "description": "The QR code",
+            "example": "1768305296192"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR code details",
+            "schema": {
+              "$ref": "#/definitions/QRDetailsResponse"
+            }
+          },
+          "404": {
+            "description": "QR code not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/upload/upload": {
+      "post": {
+        "tags": ["Upload"],
+        "summary": "Upload an image",
+        "description": "Upload an image file associated with a QR code. Supports JPEG, PNG, GIF, and WEBP formats. Maximum file size is 10MB.",
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "code",
+            "type": "string",
+            "required": true,
+            "description": "QR code associated with the upload",
+            "example": "1768305296192"
+          },
+          {
+            "in": "formData",
+            "name": "image",
+            "type": "file",
+            "required": true,
+            "description": "Image file to upload (JPEG, PNG, GIF, WEBP)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image uploaded successfully",
+            "schema": {
+              "$ref": "#/definitions/UploadResponse"
+            }
+          },
+          "400": {
+            "description": "Bad request - missing code or image",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/upload/check/{code}": {
+      "get": {
+        "tags": ["Upload"],
+        "summary": "Check if image is uploaded",
+        "description": "Check if an image has been uploaded for a specific QR code",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "type": "string",
+            "description": "The QR code to check",
+            "example": "1768305296192"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload status",
+            "schema": {
+              "$ref": "#/definitions/CheckUploadResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/upload/image/{code}": {
+      "get": {
+        "tags": ["Upload"],
+        "summary": "Get uploaded image",
+        "description": "Retrieve the uploaded image for a specific QR code. Returns the image file directly.",
+        "produces": ["image/jpeg", "image/png", "image/gif", "image/webp"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "type": "string",
+            "description": "The QR code",
+            "example": "1768305296192"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image file",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "404": {
+            "description": "Image not found"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "description": "Create a new user account. Password must contain at least one uppercase letter, one special character, and one number.",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegisterRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "schema": {
+              "$ref": "#/definitions/RegisterResponse"
+            }
+          },
+          "400": {
+            "description": "Bad request - validation error or user already exists",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login user",
+        "description": "Authenticate user and get JWT token",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid credentials",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Logout user",
+        "description": "Logout the current user",
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "schema": {
+              "$ref": "#/definitions/LogoutResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "QRGenerateRequest": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "example": "kiosk-upload",
+          "description": "Optional data to encode in QR code"
+        }
+      }
+    },
+    "QRGenerateResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "example": "1768305296192"
+            },
+            "code": {
+              "type": "string",
+              "example": "1768305296192"
+            },
+            "url": {
+              "type": "string",
+              "example": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fkiosk-ai.vercel.app%2Fupload%3Fcode%3D1768305296192"
+            },
+            "uploadUrl": {
+              "type": "string",
+              "example": "https://kiosk-ai.vercel.app/upload?code=1768305296192"
+            }
+          }
+        }
+      }
+    },
+    "QRValidateResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "isValid": {
+              "type": "boolean",
+              "example": true
+            },
+            "code": {
+              "type": "string",
+              "example": "1768305296192"
+            },
+            "message": {
+              "type": "string",
+              "example": "QR code is valid"
+            }
+          }
+        }
+      }
+    },
+    "QRDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "example": "1768305296192"
+            },
+            "uploadUrl": {
+              "type": "string",
+              "example": "https://kiosk-ai.vercel.app/upload?code=1768305296192"
+            },
+            "qrImageUrl": {
+              "type": "string",
+              "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+            },
+            "isActive": {
+              "type": "boolean",
+              "example": true
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2024-01-15T10:30:00.000Z"
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2024-01-15T11:00:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "UploadResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "example": "Image uploaded successfully"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "example": "1768305296192"
+            },
+            "imageUrl": {
+              "type": "string",
+              "example": "https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/1768305296192"
+            },
+            "cloudinaryUrl": {
+              "type": "string",
+              "example": "https://res.cloudinary.com/example/image/upload/v1234567890/image.jpg"
+            },
+            "fileName": {
+              "type": "string",
+              "example": "image.jpg"
+            },
+            "fileSize": {
+              "type": "number",
+              "example": 245678
+            },
+            "uploadedAt": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "CheckUploadResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "exists": {
+              "type": "boolean",
+              "example": true
+            },
+            "code": {
+              "type": "string",
+              "example": "1768305296192"
+            },
+            "imageUrl": {
+              "type": "string",
+              "example": "https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/1768305296192"
+            },
+            "fileName": {
+              "type": "string",
+              "example": "image.jpg"
+            },
+            "uploadedAt": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2024-01-15T10:30:00.000Z"
+            },
+            "message": {
+              "type": "string",
+              "example": "Image found"
+            }
+          }
+        }
+      }
+    },
+    "RegisterRequest": {
+      "type": "object",
+      "required": ["first_name", "last_name", "email", "password"],
+      "properties": {
+        "first_name": {
+          "type": "string",
+          "example": "John",
+          "description": "User's first name"
+        },
+        "last_name": {
+          "type": "string",
+          "example": "Doe",
+          "description": "User's last name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "example": "john.doe@example.com",
+          "description": "User's email address"
+        },
+        "password": {
+          "type": "string",
+          "example": "Password123!",
+          "description": "Password must contain at least one uppercase letter, one special character, and one number"
+        }
+      }
+    },
+    "RegisterResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "example": "User created successfully"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "first_name": {
+              "type": "string",
+              "example": "John"
+            },
+            "last_name": {
+              "type": "string",
+              "example": "Doe"
+            },
+            "email": {
+              "type": "string",
+              "example": "john.doe@example.com"
+            }
+          }
+        }
+      }
+    },
+    "LoginRequest": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "example": "john.doe@example.com",
+          "description": "User's email address"
+        },
+        "password": {
+          "type": "string",
+          "example": "Password123!",
+          "description": "User's password"
+        }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "example": "Logged in successfully"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "jwtToken": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1MDdmMWY3N2JjZjg2Y2Q3OTk0MzkwMTEiLCJpYXQiOjE2MTA1MjM0MDAsImV4cCI6MTYxMDUyNzAwMH0.example"
+            },
+            "user": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "example": "507f1f77bcf86cd799439011"
+                },
                 "first_name": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "John"
                 },
                 "last_name": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "Doe"
                 },
                 "email": {
-                  "example": "any"
-                },
-                "password": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "john.doe@example.com"
                 }
               }
             }
           }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
         }
       }
     },
-    "/auth/login": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "example": "any"
-                },
-                "password": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
+    "LogoutResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "example": "Logged out successfully"
         }
       }
     },
-    "/auth/logout": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
+    "HealthResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "status": {
+          "type": "string",
+          "example": "healthy"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2024-01-15T10:30:00.000Z"
+        },
+        "uptime": {
+          "type": "number",
+          "example": 3600.5,
+          "description": "Server uptime in seconds"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": false
+        },
+        "error": {
+          "type": "string",
+          "example": "Error message description"
         }
       }
     }

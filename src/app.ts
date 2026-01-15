@@ -3,6 +3,16 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const swaggerFile = fs.readFileSync(path.join(__dirname, '../swagger_output.json'), 'utf8');
+const swaggerDocument = JSON.parse(swaggerFile);
+
+// Read custom CSS and JS for Swagger
+const customCss = fs.readFileSync(path.join(__dirname, 'swagger-custom.css'), 'utf8');
+const customJs = fs.readFileSync(path.join(__dirname, 'swagger-custom.js'), 'utf8');
 import { connectDB } from './config/db';
 import { corsOptions } from './config/cors';
 import qrRoutes from './router/qr';
@@ -26,6 +36,28 @@ app.use(morgan('combined'));
 // Connect to database
 connectDB();
 
+// Swagger Documentation with custom CSS and JS
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(
+  swaggerDocument,
+  {
+    customCss: customCss,
+    customJs: customJs,
+    customSiteTitle: 'Time2Clean API Documentation',
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+      tryItOutEnabled: true,
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 1,
+      defaultModelExpandDepth: 1,
+      displayOperationId: false,
+      showExtensions: true,
+      showCommonExtensions: true
+    }
+  }
+));
+
 // Routes
 app.use('/api/v1/qr', qrRoutes);
 app.use('/api/v1/upload', uploadRoutes);
@@ -47,6 +79,7 @@ app.get('/', (req: Request, res: Response) => {
     success: true, 
     message: 'Kiosk AI Backend API',
     timestamp: new Date().toISOString(),
+    documentation: '/api-docs',
     endpoints: {
       qr: {
         generate: 'POST /api/v1/qr/generate',

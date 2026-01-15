@@ -23,6 +23,5 @@ const router = Router();
 router.post('/upload', uploadSingle('image'), uploadImage);
 router.get('/check/:code', checkUpload);
 router.get('/image/:code', imageCorsMiddleware, getImage);
-router.get('/image/:code', getImage);
 
 export default router;
