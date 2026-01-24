@@ -19,6 +19,7 @@ import qrRoutes from './router/qr';
 import uploadRoutes from './router/upload';
 import { cleanupOldFiles } from './controllers/uploadController';
 import { imageCorsMiddleware } from './middleware/imageCors';
+import productRoutes from "./router/product"
 
 dotenv.config();
 
@@ -62,6 +63,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(
 app.use('/api/v1/qr', qrRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/upload/image/:code', imageCorsMiddleware);
+app.use("/api/products", productRoutes);
+
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

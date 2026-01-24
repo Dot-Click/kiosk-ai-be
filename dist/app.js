@@ -55,6 +55,7 @@ const qr_1 = __importDefault(require("./router/qr"));
 const upload_1 = __importDefault(require("./router/upload"));
 const uploadController_1 = require("./controllers/uploadController");
 const imageCors_1 = require("./middleware/imageCors");
+const product_1 = __importDefault(require("./router/product"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -89,6 +90,7 @@ app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.de
 app.use('/api/v1/qr', qr_1.default);
 app.use('/api/v1/upload', upload_1.default);
 app.use('/api/v1/upload/image/:code', imageCors_1.imageCorsMiddleware);
+app.use("/api/products", product_1.default);
 // Health check
 app.get('/health', (req, res) => {
     res.json({
