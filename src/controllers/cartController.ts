@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { CartModel, Rotation, PaymentStatus, ALLOWED_COLORS } from "../models/cart";
 import { ProductModel } from "../models/product";
 import User from "../models/User/user";
+import { SuccessHandler } from "../utils/successHandler"; // path adjust karo
+import { ErrorHandler } from "../utils/errorHandler";     // path adjust karo
+import ApiError from "../utils/apiError";
 
 /* =========================
    CREATE CART
@@ -9,38 +12,62 @@ import User from "../models/User/user";
 export const createCart = async (req: Request, res: Response) => {
   try {
     const {
-      userId,          // user id from frontend / auth
-      productId,       // existing product id
+      userId,
+      productId,
       totalQuantity,
       tax,
       rotation,
       scale,
       color,
       imageUrl,
-      paymentStatus,   // optional
+      paymentStatus,
     } = req.body;
 
     // validation
     if (!userId || !productId) {
-      return res.status(400).json({ message: "userId and productId are required" });
+      return ErrorHandler.handleError(
+        new ApiError(400, "userId and productId are required"),
+        req,
+        res
+      );
     }
 
     // check user exists
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return ErrorHandler.handleError(
+        new ApiError(404, "User not found"),
+        req,
+        res
+      );
+    }
 
     // check product exists
     const product = await ProductModel.findById(productId);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) {
+      return ErrorHandler.handleError(
+        new ApiError(404, "Product not found"),
+        req,
+        res
+      );
+    }
 
     // validate rotation
     if (!Object.values(Rotation).includes(rotation)) {
-      return res.status(400).json({ message: "Invalid rotation value" });
+      return ErrorHandler.handleError(
+        new ApiError(400, "Invalid rotation value"),
+        req,
+        res
+      );
     }
 
     // validate color
     if (!ALLOWED_COLORS.includes(color)) {
-      return res.status(400).json({ message: "Invalid color" });
+      return ErrorHandler.handleError(
+        new ApiError(400, "Invalid color"),
+        req,
+        res
+      );
     }
 
     // calculate totalPrice
@@ -60,11 +87,20 @@ export const createCart = async (req: Request, res: Response) => {
       paymentStatus: paymentStatus || PaymentStatus.PENDING,
     });
 
-    return res.status(201).json({ message: "Cart created successfully", cart });
+    return SuccessHandler.handle(
+      res,
+      "Cart created successfully",
+      cart,
+      201
+    );
 
   } catch (error: any) {
     console.error(error);
-    return res.status(500).json({ message: error.message });
+    return ErrorHandler.handleError(
+      new ApiError(500, error.message),
+      req,
+      res
+    );
   }
 };
 
@@ -77,9 +113,18 @@ export const getAllCarts = async (_req: Request, res: Response) => {
       .populate("user", "first_name last_name email")
       .populate("product", "code productCategory price");
 
-    return res.status(200).json({ carts });
+    return SuccessHandler.handle(
+      res,
+      "Carts fetched successfully",
+      carts,
+      200
+    );
   } catch (error: any) {
     console.error(error);
-    return res.status(500).json({ message: error.message });
+    return ErrorHandler.handleError(
+      new ApiError(500, error.message),
+      _req,
+      res
+    );
   }
 };
