@@ -16,34 +16,35 @@ exports.getAllCarts = exports.createCart = void 0;
 const cart_1 = require("../models/cart");
 const product_1 = require("../models/product");
 const user_1 = __importDefault(require("../models/User/user"));
+const SuccessHandler_1 = require("../utils/SuccessHandler");
+const ErrorHandler_1 = require("../utils/ErrorHandler");
 /* =========================
    CREATE CART
 ========================= */
 const createCart = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { userId, // user id from frontend / auth
-        productId, // existing product id
-        totalQuantity, tax, rotation, scale, color, imageUrl, paymentStatus, // optional
-         } = req.body;
+        const { userId, productId, totalQuantity, tax, rotation, scale, color, imageUrl, paymentStatus, } = req.body;
         // validation
         if (!userId || !productId) {
-            return res.status(400).json({ message: "userId and productId are required" });
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "userId and productId are required"), req, res);
         }
         // check user exists
         const user = yield user_1.default.findById(userId);
-        if (!user)
-            return res.status(404).json({ message: "User not found" });
+        if (!user) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(404, "User not found"), req, res);
+        }
         // check product exists
         const product = yield product_1.ProductModel.findById(productId);
-        if (!product)
-            return res.status(404).json({ message: "Product not found" });
+        if (!product) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(404, "Product not found"), req, res);
+        }
         // validate rotation
         if (!Object.values(cart_1.Rotation).includes(rotation)) {
-            return res.status(400).json({ message: "Invalid rotation value" });
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Invalid rotation value"), req, res);
         }
         // validate color
         if (!cart_1.ALLOWED_COLORS.includes(color)) {
-            return res.status(400).json({ message: "Invalid color" });
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Invalid color"), req, res);
         }
         // calculate totalPrice
         const totalPrice = product.price * totalQuantity + tax;
@@ -60,11 +61,11 @@ const createCart = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             imageUrl,
             paymentStatus: paymentStatus || cart_1.PaymentStatus.PENDING,
         });
-        return res.status(201).json({ message: "Cart created successfully", cart });
+        return SuccessHandler_1.SuccessHandler.handle(res, "Cart created successfully", cart, 201);
     }
     catch (error) {
         console.error(error);
-        return res.status(500).json({ message: error.message });
+        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(500, error.message), req, res);
     }
 });
 exports.createCart = createCart;
@@ -76,11 +77,11 @@ const getAllCarts = (_req, res) => __awaiter(void 0, void 0, void 0, function* (
         const carts = yield cart_1.CartModel.find()
             .populate("user", "first_name last_name email")
             .populate("product", "code productCategory price");
-        return res.status(200).json({ carts });
+        return SuccessHandler_1.SuccessHandler.handle(res, "Carts fetched successfully", carts, 200);
     }
     catch (error) {
         console.error(error);
-        return res.status(500).json({ message: error.message });
+        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(500, error.message), _req, res);
     }
 });
 exports.getAllCarts = getAllCarts;
