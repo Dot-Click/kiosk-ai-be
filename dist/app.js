@@ -56,6 +56,8 @@ const upload_1 = __importDefault(require("./router/upload"));
 const uploadController_1 = require("./controllers/uploadController");
 const imageCors_1 = require("./middleware/imageCors");
 const product_1 = __importDefault(require("./router/product"));
+const admin_1 = __importDefault(require("./router/admin"));
+const stripeSettings_1 = __importDefault(require("./router/stripeSettings"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -66,8 +68,10 @@ app.use((0, helmet_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 app.use((0, morgan_1.default)('combined'));
-// Connect to database
-(0, db_1.connectDB)();
+// Connect to database (async, but don't block server startup)
+(0, db_1.connectDB)().catch((err) => {
+    console.error('Failed to connect to database:', err);
+});
 // Swagger Documentation with custom CSS and JS
 app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument, {
     customCss: customCss,
@@ -91,6 +95,8 @@ app.use('/api/v1/qr', qr_1.default);
 app.use('/api/v1/upload', upload_1.default);
 app.use('/api/v1/upload/image/:code', imageCors_1.imageCorsMiddleware);
 app.use("/api/products", product_1.default);
+app.use("/api/admin", admin_1.default);
+app.use("/api/admin/stripe-settings", stripeSettings_1.default);
 // Health check
 app.get('/health', (req, res) => {
     res.json({

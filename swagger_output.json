@@ -9,10 +9,7 @@
     }
   },
   "host": "localhost:5000",
-  "basePath": "/",
-  "schemes": ["http", "https"],
-  "consumes": ["application/json", "multipart/form-data"],
-  "produces": ["application/json", "image/jpeg", "image/png", "image/gif"],
+  "basePath": "/api",
   "tags": [
     {
       "name": "QR Code",
@@ -27,47 +24,59 @@
       "description": "Authentication endpoints"
     },
     {
+      "name": "Admin",
+      "description": "Admin authentication and dashboard endpoints"
+    },
+    {
       "name": "Health",
       "description": "Health check endpoints"
     }
   ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Enter your JWT token in the format: Bearer {token}"
+    }
+  },
+  "consumes": [
+    "application/json",
+    "multipart/form-data"
+  ],
+  "produces": [
+    "application/json",
+    "image/jpeg",
+    "image/png",
+    "image/gif"
+  ],
   "paths": {
     "/health": {
       "get": {
-        "tags": ["Health"],
-        "summary": "Health check",
-        "description": "Check if the API is running and healthy",
-        "produces": ["application/json"],
+        "description": "",
         "responses": {
           "200": {
-            "description": "API is healthy",
-            "schema": {
-              "$ref": "#/definitions/HealthResponse"
-            }
+            "description": "OK"
           }
         }
       }
     },
-    "/api/v1/qr/generate": {
+    "/upload/upload": {
       "post": {
-        "tags": ["QR Code"],
-        "summary": "Generate a new QR code",
-        "description": "Generates a unique QR code that links to the upload page. The QR code contains a unique timestamp-based code.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "description": "",
         "parameters": [
           {
-            "in": "body",
             "name": "body",
-            "description": "Optional data for QR code",
-            "required": false,
+            "in": "body",
             "schema": {
               "type": "object",
               "properties": {
-                "data": {
-                  "type": "string",
-                  "example": "kiosk-upload",
-                  "description": "Optional data to encode in QR code"
+                "code": {
+                  "example": "any"
                 }
               }
             }
@@ -75,269 +84,962 @@
         ],
         "responses": {
           "200": {
-            "description": "QR code generated successfully",
-            "schema": {
-              "$ref": "#/definitions/QRGenerateResponse"
-            }
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/upload/check/{code}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/upload/image/{code}": {
+      "get": {
+        "description": "",
+        "produces": [
+          "error"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/qr/generate": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
             "schema": {
-              "$ref": "#/definitions/ErrorResponse"
+              "type": "object",
+              "properties": {
+                "data": {
+                  "example": "any"
+                }
+              }
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/qr/validate/{code}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/qr/details/{code}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/generate": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/validate/{code}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/details/{code}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/check/{code}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/image/{code}": {
+      "get": {
+        "description": "",
+        "produces": [
+          "error"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/logout": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/dashboard/stats": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/settings/profile": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "example": "any"
+                },
+                "lastName": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/settings/password": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "currentPassword": {
+                  "example": "any"
+                },
+                "newPassword": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/settings/site": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "siteName": {
+                  "example": "any"
+                },
+                "siteUrl": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/test": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/qr/generate": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
     },
     "/api/v1/qr/validate/{code}": {
       "get": {
-        "tags": ["QR Code"],
-        "summary": "Validate a QR code",
-        "description": "Check if a QR code is valid and not expired",
-        "produces": ["application/json"],
+        "description": "",
         "parameters": [
           {
-            "in": "path",
             "name": "code",
+            "in": "path",
             "required": true,
-            "type": "string",
-            "description": "The QR code to validate",
-            "example": "1768305296192"
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "Validation result",
-            "schema": {
-              "$ref": "#/definitions/QRValidateResponse"
-            }
+            "description": "OK"
           }
         }
       }
     },
     "/api/v1/qr/details/{code}": {
       "get": {
-        "tags": ["QR Code"],
-        "summary": "Get QR code details",
-        "description": "Retrieve detailed information about a QR code including expiration time and status",
-        "produces": ["application/json"],
+        "description": "",
         "parameters": [
           {
-            "in": "path",
             "name": "code",
+            "in": "path",
             "required": true,
-            "type": "string",
-            "description": "The QR code",
-            "example": "1768305296192"
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "QR code details",
-            "schema": {
-              "$ref": "#/definitions/QRDetailsResponse"
-            }
+            "description": "OK"
           },
           "404": {
-            "description": "QR code not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
     },
     "/api/v1/upload/upload": {
       "post": {
-        "tags": ["Upload"],
-        "summary": "Upload an image",
-        "description": "Upload an image file associated with a QR code. Supports JPEG, PNG, GIF, and WEBP formats. Maximum file size is 10MB.",
-        "consumes": ["multipart/form-data"],
-        "produces": ["application/json"],
+        "description": "",
         "parameters": [
           {
-            "in": "formData",
-            "name": "code",
-            "type": "string",
-            "required": true,
-            "description": "QR code associated with the upload",
-            "example": "1768305296192"
-          },
-          {
-            "in": "formData",
-            "name": "image",
-            "type": "file",
-            "required": true,
-            "description": "Image file to upload (JPEG, PNG, GIF, WEBP)"
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "example": "any"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Image uploaded successfully",
-            "schema": {
-              "$ref": "#/definitions/UploadResponse"
-            }
+            "description": "OK"
           },
           "400": {
-            "description": "Bad request - missing code or image",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
+            "description": "Bad Request"
           },
           "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
+            "description": "Internal Server Error"
           }
         }
       }
     },
     "/api/v1/upload/check/{code}": {
       "get": {
-        "tags": ["Upload"],
-        "summary": "Check if image is uploaded",
-        "description": "Check if an image has been uploaded for a specific QR code",
-        "produces": ["application/json"],
+        "description": "",
         "parameters": [
           {
-            "in": "path",
             "name": "code",
+            "in": "path",
             "required": true,
-            "type": "string",
-            "description": "The QR code to check",
-            "example": "1768305296192"
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "Upload status",
-            "schema": {
-              "$ref": "#/definitions/CheckUploadResponse"
-            }
+            "description": "OK"
           }
         }
       }
     },
     "/api/v1/upload/image/{code}": {
       "get": {
-        "tags": ["Upload"],
-        "summary": "Get uploaded image",
-        "description": "Retrieve the uploaded image for a specific QR code. Returns the image file directly.",
-        "produces": ["image/jpeg", "image/png", "image/gif", "image/webp"],
+        "description": "",
+        "produces": [
+          "error"
+        ],
         "parameters": [
           {
-            "in": "path",
             "name": "code",
+            "in": "path",
             "required": true,
-            "type": "string",
-            "description": "The QR code",
-            "example": "1768305296192"
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "Image file",
-            "schema": {
-              "type": "file"
-            }
-          },
-          "404": {
-            "description": "Image not found"
+            "description": "OK"
           }
         }
       }
     },
-    "/api/v1/auth/register": {
+    "/api/products/create": {
       "post": {
-        "tags": ["Auth"],
-        "summary": "Register a new user",
-        "description": "Create a new user account. Password must contain at least one uppercase letter, one special character, and one number.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "description": "",
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/RegisterRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "User created successfully",
-            "schema": {
-              "$ref": "#/definitions/RegisterResponse"
-            }
+            "name": "origin",
+            "in": "header",
+            "type": "string"
           },
-          "400": {
-            "description": "Bad request - validation error or user already exists",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/login": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Login user",
-        "description": "Authenticate user and get JWT token",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "parameters": [
           {
-            "in": "body",
             "name": "body",
-            "required": true,
+            "in": "body",
             "schema": {
-              "$ref": "#/definitions/LoginRequest"
+              "type": "object",
+              "properties": {
+                "code": {
+                  "example": "any"
+                },
+                "productCategory": {
+                  "example": "any"
+                },
+                "price": {
+                  "example": "any"
+                },
+                "quantity": {
+                  "example": "any"
+                }
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Login successful",
-            "schema": {
-              "$ref": "#/definitions/LoginResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid credentials",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
+            "description": "OK"
           }
         }
       }
     },
-    "/api/v1/auth/logout": {
+    "/api/products/all": {
       "get": {
-        "tags": ["Auth"],
-        "summary": "Logout user",
-        "description": "Logout the current user",
-        "produces": ["application/json"],
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Logout successful",
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/login": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
             "schema": {
-              "$ref": "#/definitions/LogoutResponse"
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard/stats": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/settings/profile": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "example": "any"
+                },
+                "lastName": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/settings/password": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "currentPassword": {
+                  "example": "any"
+                },
+                "newPassword": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/settings/site": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "siteName": {
+                  "example": "any"
+                },
+                "siteUrl": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/orders": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/orders/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/stripe-settings/": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "publishableKey": {
+                  "example": "any"
+                },
+                "secretKey": {
+                  "example": "any"
+                },
+                "webhookSecret": {
+                  "example": "any"
+                },
+                "isActive": {
+                  "example": "any"
+                },
+                "currency": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/stripe-settings/test": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -348,9 +1050,21 @@
       "type": "object",
       "properties": {
         "data": {
-          "type": "string",
-          "example": "kiosk-upload",
-          "description": "Optional data to encode in QR code"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "kiosk-upload"
+            },
+            "description": {
+              "type": "string",
+              "example": "Optional data to encode in QR code"
+            }
+          }
         }
       }
     },
@@ -358,27 +1072,72 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "data": {
           "type": "object",
           "properties": {
             "id": {
-              "type": "string",
-              "example": "1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "1768305296192"
+                }
+              }
             },
             "code": {
-              "type": "string",
-              "example": "1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "1768305296192"
+                }
+              }
             },
             "url": {
-              "type": "string",
-              "example": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fkiosk-ai.vercel.app%2Fupload%3Fcode%3D1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=..."
+                }
+              }
             },
             "uploadUrl": {
-              "type": "string",
-              "example": "https://kiosk-ai.vercel.app/upload?code=1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://kiosk-ai.vercel.app/upload?code=1768305296192"
+                }
+              }
             }
           }
         }
@@ -388,23 +1147,59 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "data": {
           "type": "object",
           "properties": {
             "isValid": {
-              "type": "boolean",
-              "example": true
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "boolean"
+                },
+                "example": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
             },
             "code": {
-              "type": "string",
-              "example": "1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "1768305296192"
+                }
+              }
             },
             "message": {
-              "type": "string",
-              "example": "QR code is valid"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "QR code is valid"
+                }
+              }
             }
           }
         }
@@ -414,37 +1209,149 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "data": {
           "type": "object",
           "properties": {
             "code": {
-              "type": "string",
-              "example": "1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "1768305296192"
+                }
+              }
             },
             "uploadUrl": {
-              "type": "string",
-              "example": "https://kiosk-ai.vercel.app/upload?code=1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://kiosk-ai.vercel.app/upload?code=1768305296192"
+                }
+              }
             },
             "qrImageUrl": {
-              "type": "string",
-              "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=..."
+                }
+              }
             },
             "isActive": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "boolean"
+                },
+                "example": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            },
+            "createdAt": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "format": {
+                  "type": "string",
+                  "example": "date-time"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            },
+            "expiresAt": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "format": {
+                  "type": "string",
+                  "example": "date-time"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "2024-01-15T11:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "UploadRequest": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
               "type": "boolean",
               "example": true
             },
-            "createdAt": {
+            "example": {
               "type": "string",
-              "format": "date-time",
-              "example": "2024-01-15T10:30:00.000Z"
+              "example": "1768305296192"
             },
-            "expiresAt": {
+            "description": {
               "type": "string",
-              "format": "date-time",
-              "example": "2024-01-15T11:00:00.000Z"
+              "example": "QR code associated with the upload"
+            }
+          }
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "file"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "description": {
+              "type": "string",
+              "example": "Image file to upload (JPEG, PNG, GIF, WEBP)"
             }
           }
         }
@@ -454,40 +1361,115 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "message": {
-          "type": "string",
-          "example": "Image uploaded successfully"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Image uploaded successfully"
+            }
+          }
         },
         "data": {
           "type": "object",
           "properties": {
             "code": {
-              "type": "string",
-              "example": "1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "1768305296192"
+                }
+              }
             },
             "imageUrl": {
-              "type": "string",
-              "example": "https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/1768305296192"
+                }
+              }
             },
             "cloudinaryUrl": {
-              "type": "string",
-              "example": "https://res.cloudinary.com/example/image/upload/v1234567890/image.jpg"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://res.cloudinary.com/..."
+                }
+              }
             },
             "fileName": {
-              "type": "string",
-              "example": "image.jpg"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "image.jpg"
+                }
+              }
             },
             "fileSize": {
-              "type": "number",
-              "example": 245678
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 245678
+                }
+              }
             },
             "uploadedAt": {
-              "type": "string",
-              "format": "date-time",
-              "example": "2024-01-15T10:30:00.000Z"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "format": {
+                  "type": "string",
+                  "example": "date-time"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "2024-01-15T10:30:00.000Z"
+                }
+              }
             }
           }
         }
@@ -497,36 +1479,102 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "data": {
           "type": "object",
           "properties": {
             "exists": {
-              "type": "boolean",
-              "example": true
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "boolean"
+                },
+                "example": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
             },
             "code": {
-              "type": "string",
-              "example": "1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "1768305296192"
+                }
+              }
             },
             "imageUrl": {
-              "type": "string",
-              "example": "https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/1768305296192"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://kiosk-ai-be-production.up.railway.app/api/v1/upload/image/1768305296192"
+                }
+              }
             },
             "fileName": {
-              "type": "string",
-              "example": "image.jpg"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "image.jpg"
+                }
+              }
             },
             "uploadedAt": {
-              "type": "string",
-              "format": "date-time",
-              "example": "2024-01-15T10:30:00.000Z"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "format": {
+                  "type": "string",
+                  "example": "date-time"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "2024-01-15T10:30:00.000Z"
+                }
+              }
             },
             "message": {
-              "type": "string",
-              "example": "Image found"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "Image found"
+                }
+              }
             }
           }
         }
@@ -534,28 +1582,94 @@
     },
     "RegisterRequest": {
       "type": "object",
-      "required": ["first_name", "last_name", "email", "password"],
       "properties": {
         "first_name": {
-          "type": "string",
-          "example": "John",
-          "description": "User's first name"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "string",
+              "example": "John"
+            },
+            "description": {
+              "type": "string",
+              "example": "User's first name"
+            }
+          }
         },
         "last_name": {
-          "type": "string",
-          "example": "Doe",
-          "description": "User's last name"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "string",
+              "example": "Doe"
+            },
+            "description": {
+              "type": "string",
+              "example": "User's last name"
+            }
+          }
         },
         "email": {
-          "type": "string",
-          "format": "email",
-          "example": "john.doe@example.com",
-          "description": "User's email address"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "format": {
+              "type": "string",
+              "example": "email"
+            },
+            "example": {
+              "type": "string",
+              "example": "john.doe@example.com"
+            },
+            "description": {
+              "type": "string",
+              "example": "User's email address"
+            }
+          }
         },
         "password": {
-          "type": "string",
-          "example": "Password123!",
-          "description": "Password must contain at least one uppercase letter, one special character, and one number"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "string",
+              "example": "Password123!"
+            },
+            "description": {
+              "type": "string",
+              "example": "Password must contain at least one uppercase letter, one special character, and one number"
+            }
+          }
         }
       }
     },
@@ -563,31 +1677,85 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "message": {
-          "type": "string",
-          "example": "User created successfully"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "User created successfully"
+            }
+          }
         },
         "data": {
           "type": "object",
           "properties": {
             "id": {
-              "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "507f1f77bcf86cd799439011"
+                }
+              }
             },
             "first_name": {
-              "type": "string",
-              "example": "John"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "John"
+                }
+              }
             },
             "last_name": {
-              "type": "string",
-              "example": "Doe"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "Doe"
+                }
+              }
             },
             "email": {
-              "type": "string",
-              "example": "john.doe@example.com"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "john.doe@example.com"
+                }
+              }
             }
           }
         }
@@ -595,18 +1763,52 @@
     },
     "LoginRequest": {
       "type": "object",
-      "required": ["email", "password"],
       "properties": {
         "email": {
-          "type": "string",
-          "format": "email",
-          "example": "john.doe@example.com",
-          "description": "User's email address"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "format": {
+              "type": "string",
+              "example": "email"
+            },
+            "example": {
+              "type": "string",
+              "example": "john.doe@example.com"
+            },
+            "description": {
+              "type": "string",
+              "example": "User's email address"
+            }
+          }
         },
         "password": {
-          "type": "string",
-          "example": "Password123!",
-          "description": "User's password"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "string",
+              "example": "Password123!"
+            },
+            "description": {
+              "type": "string",
+              "example": "User's password"
+            }
+          }
         }
       }
     },
@@ -614,38 +1816,101 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "message": {
-          "type": "string",
-          "example": "Logged in successfully"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Logged in successfully"
+            }
+          }
         },
         "data": {
           "type": "object",
           "properties": {
             "jwtToken": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1MDdmMWY3N2JjZjg2Y2Q3OTk0MzkwMTEiLCJpYXQiOjE2MTA1MjM0MDAsImV4cCI6MTYxMDUyNzAwMH0.example"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+              }
             },
             "user": {
               "type": "object",
               "properties": {
                 "id": {
-                  "type": "string",
-                  "example": "507f1f77bcf86cd799439011"
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    }
+                  }
                 },
                 "first_name": {
-                  "type": "string",
-                  "example": "John"
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "John"
+                    }
+                  }
                 },
                 "last_name": {
-                  "type": "string",
-                  "example": "Doe"
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "Doe"
+                    }
+                  }
                 },
                 "email": {
-                  "type": "string",
-                  "example": "john.doe@example.com"
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "john.doe@example.com"
+                    }
+                  }
                 }
               }
             }
@@ -657,12 +1922,30 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "message": {
-          "type": "string",
-          "example": "Logged out successfully"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Logged out successfully"
+            }
+          }
         }
       }
     },
@@ -670,22 +1953,64 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": true
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
         },
         "status": {
-          "type": "string",
-          "example": "healthy"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "healthy"
+            }
+          }
         },
         "timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "example": "2024-01-15T10:30:00.000Z"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "format": {
+              "type": "string",
+              "example": "date-time"
+            },
+            "example": {
+              "type": "string",
+              "example": "2024-01-15T10:30:00.000Z"
+            }
+          }
         },
         "uptime": {
-          "type": "number",
-          "example": 3600.5,
-          "description": "Server uptime in seconds"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "number"
+            },
+            "example": {
+              "type": "number",
+              "example": 3600.5
+            },
+            "description": {
+              "type": "string",
+              "example": "Server uptime in seconds"
+            }
+          }
         }
       }
     },
@@ -693,12 +2018,1475 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "example": false
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": false
+            }
+          }
         },
         "error": {
-          "type": "string",
-          "example": "Error message description"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Error message description"
+            }
+          }
+        }
+      }
+    },
+    "AdminLoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "format": {
+              "type": "string",
+              "example": "email"
+            },
+            "example": {
+              "type": "string",
+              "example": "admin@example.com"
+            },
+            "description": {
+              "type": "string",
+              "example": "Admin email address"
+            }
+          }
+        },
+        "password": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "string",
+              "example": "Admin123!"
+            },
+            "description": {
+              "type": "string",
+              "example": "Admin password"
+            }
+          }
+        }
+      }
+    },
+    "AdminLoginResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Admin logged in successfully"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "jwtToken": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+              }
+            },
+            "user": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    }
+                  }
+                },
+                "first_name": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "Admin"
+                    }
+                  }
+                },
+                "last_name": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "User"
+                    }
+                  }
+                },
+                "email": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "admin@example.com"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "DashboardStatsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Dashboard stats retrieved"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "totalOrders": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 150
+                }
+              }
+            },
+            "totalPayments": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 12500
+                }
+              }
+            },
+            "pendingOrders": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 25
+                }
+              }
+            },
+            "completedOrders": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 125
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "UpdateProfileRequest": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "string",
+              "example": "John"
+            },
+            "description": {
+              "type": "string",
+              "example": "Admin's first name"
+            }
+          }
+        },
+        "lastName": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "string",
+              "example": "Doe"
+            },
+            "description": {
+              "type": "string",
+              "example": "Admin's last name"
+            }
+          }
+        },
+        "email": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "format": {
+              "type": "string",
+              "example": "email"
+            },
+            "example": {
+              "type": "string",
+              "example": "admin@example.com"
+            },
+            "description": {
+              "type": "string",
+              "example": "Admin's email address"
+            }
+          }
+        }
+      }
+    },
+    "UpdateProfileResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Profile updated successfully"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    }
+                  }
+                },
+                "first_name": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "John"
+                    }
+                  }
+                },
+                "last_name": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "Doe"
+                    }
+                  }
+                },
+                "email": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "example": "admin@example.com"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ChangePasswordRequest": {
+      "type": "object",
+      "properties": {
+        "currentPassword": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "string",
+              "example": "OldPassword123!"
+            },
+            "description": {
+              "type": "string",
+              "example": "Current password"
+            }
+          }
+        },
+        "newPassword": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "string",
+              "example": "NewPassword123!"
+            },
+            "description": {
+              "type": "string",
+              "example": "New password (minimum 6 characters)"
+            }
+          }
+        }
+      }
+    },
+    "ChangePasswordResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Password changed successfully"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "object"
+            },
+            "example": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        }
+      }
+    },
+    "UpdateSiteSettingsRequest": {
+      "type": "object",
+      "properties": {
+        "siteName": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "string",
+              "example": "My Kiosk Store"
+            },
+            "description": {
+              "type": "string",
+              "example": "Site name"
+            }
+          }
+        },
+        "siteUrl": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "format": {
+              "type": "string",
+              "example": "url"
+            },
+            "example": {
+              "type": "string",
+              "example": "https://example.com"
+            },
+            "description": {
+              "type": "string",
+              "example": "Site URL"
+            }
+          }
+        }
+      }
+    },
+    "UpdateSiteSettingsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Site settings updated successfully"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "siteName": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "My Kiosk Store"
+                }
+              }
+            },
+            "siteUrl": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "https://example.com"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GetOrdersResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Orders retrieved"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "array"
+            },
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "object"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "507f1f77bcf86cd799439011"
+                        }
+                      }
+                    },
+                    "orderNumber": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "ORD-001"
+                        }
+                      }
+                    },
+                    "customerName": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "John Doe"
+                        }
+                      }
+                    },
+                    "customerEmail": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "john@example.com"
+                        }
+                      }
+                    },
+                    "totalAmount": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "number"
+                        },
+                        "example": {
+                          "type": "number",
+                          "example": 49.99
+                        }
+                      }
+                    },
+                    "status": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "enum": {
+                          "type": "array",
+                          "example": [
+                            "pending",
+                            "processing",
+                            "completed",
+                            "cancelled"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "pending"
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "format": {
+                          "type": "string",
+                          "example": "date-time"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "2024-01-15T10:30:00.000Z"
+                        }
+                      }
+                    },
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "array"
+                        },
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "example": "object"
+                            },
+                            "properties": {
+                              "type": "object",
+                              "properties": {
+                                "productName": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "string"
+                                    },
+                                    "example": {
+                                      "type": "string",
+                                      "example": "Custom T-Shirt"
+                                    }
+                                  }
+                                },
+                                "quantity": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "number"
+                                    },
+                                    "example": {
+                                      "type": "number",
+                                      "example": 1
+                                    }
+                                  }
+                                },
+                                "price": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "number"
+                                    },
+                                    "example": {
+                                      "type": "number",
+                                      "example": 49.99
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GetOrderDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Order details retrieved"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "_id": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "507f1f77bcf86cd799439011"
+                }
+              }
+            },
+            "orderNumber": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "ORD-001"
+                }
+              }
+            },
+            "customerName": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "John Doe"
+                }
+              }
+            },
+            "customerEmail": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "john@example.com"
+                }
+              }
+            },
+            "totalAmount": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 49.99
+                }
+              }
+            },
+            "status": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "enum": {
+                  "type": "array",
+                  "example": [
+                    "pending",
+                    "processing",
+                    "completed",
+                    "cancelled"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": {
+                  "type": "string",
+                  "example": "pending"
+                }
+              }
+            },
+            "createdAt": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "format": {
+                  "type": "string",
+                  "example": "date-time"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            },
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "array"
+                },
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "object"
+                    },
+                    "properties": {
+                      "type": "object",
+                      "properties": {
+                        "productName": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "example": "string"
+                            },
+                            "example": {
+                              "type": "string",
+                              "example": "Custom T-Shirt"
+                            }
+                          }
+                        },
+                        "quantity": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "example": "number"
+                            },
+                            "example": {
+                              "type": "number",
+                              "example": 1
+                            }
+                          }
+                        },
+                        "price": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "example": "number"
+                            },
+                            "example": {
+                              "type": "number",
+                              "example": 49.99
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "shippingAddress": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "object"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "street": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "123 Main St"
+                        }
+                      }
+                    },
+                    "city": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "New York"
+                        }
+                      }
+                    },
+                    "state": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "NY"
+                        }
+                      }
+                    },
+                    "zip": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "10001"
+                        }
+                      }
+                    },
+                    "country": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        },
+                        "example": {
+                          "type": "string",
+                          "example": "USA"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "StripeSettingsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Stripe settings retrieved"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "_id": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "507f1f77bcf86cd799439011"
+                }
+              }
+            },
+            "publishableKey": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "pk_test_..."
+                }
+              }
+            },
+            "secretKey": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "sk_test_..."
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Masked secret key (only last 4 characters visible)"
+                }
+              }
+            },
+            "webhookSecret": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "whsec_..."
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Masked webhook secret (only last 4 characters visible)"
+                }
+              }
+            },
+            "isActive": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "boolean"
+                },
+                "example": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            },
+            "currency": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "USD"
+                }
+              }
+            },
+            "updatedAt": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "format": {
+                  "type": "string",
+                  "example": "date-time"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "UpdateStripeSettingsRequest": {
+      "type": "object",
+      "properties": {
+        "publishableKey": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "string",
+              "example": "pk_test_..."
+            },
+            "description": {
+              "type": "string",
+              "example": "Stripe publishable key"
+            }
+          }
+        },
+        "secretKey": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "string",
+              "example": "sk_test_..."
+            },
+            "description": {
+              "type": "string",
+              "example": "Stripe secret key"
+            }
+          }
+        },
+        "webhookSecret": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "string",
+              "example": "whsec_..."
+            },
+            "description": {
+              "type": "string",
+              "example": "Stripe webhook secret"
+            }
+          }
+        },
+        "isActive": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            },
+            "description": {
+              "type": "string",
+              "example": "Whether Stripe is active"
+            }
+          }
+        },
+        "currency": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": {
+              "type": "string",
+              "example": "USD"
+            },
+            "description": {
+              "type": "string",
+              "example": "Default currency"
+            }
+          }
+        }
+      }
+    },
+    "TestStripeConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Stripe connection test successful"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "connected": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "boolean"
+                },
+                "example": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            },
+            "accountId": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "acct_..."
+                }
+              }
+            },
+            "accountEmail": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "account@example.com"
+                }
+              }
+            }
+          }
         }
       }
     }

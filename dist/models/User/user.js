@@ -111,18 +111,23 @@ const userSchema = new mongoose_1.Schema({
     },
 });
 // Hash password before saving
-userSchema.pre("save", function (next) {
+userSchema.pre("save", function () {
     return __awaiter(this, void 0, void 0, function* () {
         if (!this.isModified("password"))
-            return next();
+            return;
         const salt = yield bcryptjs_1.default.genSalt(10);
         this.password = yield bcryptjs_1.default.hash(this.password, salt);
-        next();
     });
 });
 // JWT Token
 userSchema.methods.getJWTToken = function () {
-    return jsonwebtoken_1.default.sign({ _id: this._id }, process.env.JWT_SECRET || "");
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error("JWT_SECRET is not set in environment variables");
+    }
+    return jsonwebtoken_1.default.sign({ _id: this._id }, secret, {
+        expiresIn: "7d", // Token expires in 7 days
+    });
 };
 // Compare password
 userSchema.methods.comparePassword = function (enteredPassword) {

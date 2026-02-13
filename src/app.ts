@@ -19,7 +19,9 @@ import qrRoutes from './router/qr';
 import uploadRoutes from './router/upload';
 import { cleanupOldFiles } from './controllers/uploadController';
 import { imageCorsMiddleware } from './middleware/imageCors';
-import productRoutes from "./router/product"
+import productRoutes from "./router/product";
+import adminRoutes from "./router/admin";
+import stripeSettingsRoutes from "./router/stripeSettings";
 
 dotenv.config();
 
@@ -34,8 +36,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined'));
 
-// Connect to database
-connectDB();
+// Connect to database (async, but don't block server startup)
+connectDB().catch((err) => {
+  console.error('Failed to connect to database:', err);
+});
 
 // Swagger Documentation with custom CSS and JS
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(
@@ -64,6 +68,8 @@ app.use('/api/v1/qr', qrRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/upload/image/:code', imageCorsMiddleware);
 app.use("/api/products", productRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/admin/stripe-settings", stripeSettingsRoutes);
 
 
 // Health check

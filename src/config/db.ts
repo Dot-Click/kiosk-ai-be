@@ -94,12 +94,15 @@
 
 
 import { MongoClient, Db } from 'mongodb';
+import mongoose from 'mongoose';
+import dns from 'node:dns';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 let db: Db | null = null;
 let mongoClient: MongoClient | null = null;
+let mongooseConnected = false;
 
 export async function connectDB() {
   try {
@@ -114,7 +117,44 @@ export async function connectDB() {
       return null;
     }
     
-    // Clean up the URI - ensure it ends with database name
+    // Fix for querySrv ECONNREFUSED on Windows (Node.js DNS resolver issue).
+    // Use public DNS so SRV lookup for mongodb+srv:// can succeed.
+    if (mongoUri?.startsWith('mongodb+srv://')) {
+      dns.setServers(['1.1.1.1', '8.8.8.8']); // Cloudflare and Google DNS
+      console.log('🔧 DNS servers set to public DNS (1.1.1.1, 8.8.8.8) for SRV lookup');
+    }
+    
+    // Connect Mongoose first (required for Mongoose models)
+    if (!mongooseConnected && mongoose.connection.readyState === 0) {
+      console.log('🔗 Connecting Mongoose to MongoDB...');
+      await mongoose.connect(mongoUri, {
+        dbName: 'kiosk-ai',
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+      });
+      mongooseConnected = true;
+      console.log('✅ Mongoose connected successfully!');
+      
+      // Mongoose connection event handlers
+      mongoose.connection.on('connected', () => {
+        console.log('✅ Mongoose connected to MongoDB');
+      });
+      
+      mongoose.connection.on('error', (err) => {
+        console.error('❌ Mongoose connection error:', err);
+        mongooseConnected = false;
+      });
+      
+      mongoose.connection.on('disconnected', () => {
+        console.log('⚠️ Mongoose disconnected from MongoDB');
+        mongooseConnected = false;
+      });
+    } else if (mongoose.connection.readyState === 1) {
+      console.log('✅ Mongoose already connected');
+      mongooseConnected = true;
+    }
+    
+    // Clean up the URI - ensure it ends with database name (for native driver)
     let cleanUri = mongoUri.trim();
     
     // Remove trailing slash if exists
@@ -133,7 +173,7 @@ export async function connectDB() {
       }
     }
     
-    console.log('🔗 Connecting to MongoDB with URI (masked):', 
+    console.log('🔗 Connecting native MongoDB driver with URI (masked):', 
       cleanUri.replace(/:[^:@]*@/, ':****@'));
     
     const client = new MongoClient(cleanUri, {
@@ -154,7 +194,7 @@ export async function connectDB() {
     mongoClient = client;
     db = client.db('kiosk-ai');
     
-    console.log('✅ MongoDB connected successfully!');
+    console.log('✅ Native MongoDB driver connected successfully!');
     console.log('📊 Database:', db.databaseName);
     
     return db;
@@ -162,7 +202,13 @@ export async function connectDB() {
     console.error('❌ MongoDB connection failed:', error.message);
     
     // Log more details for debugging
-    if (error.code === 'ENOTFOUND') {
+    if (error.message?.includes('querySrv') || error.message?.includes('ECONNREFUSED')) {
+      console.error('💡 DNS SRV lookup failed (common on Windows).');
+      console.error('💡 Solutions:');
+      console.error('   1. Use Google/Cloudflare DNS (8.8.8.8, 1.1.1.1)');
+      console.error('   2. Disable VPN if active');
+      console.error('   3. In MongoDB Atlas, use "Standard" connection string instead of SRV');
+    } else if (error.code === 'ENOTFOUND') {
       console.error('❌ DNS lookup failed. Check MongoDB hostname.');
     } else if (error.code === 'ETIMEDOUT') {
       console.error('❌ Connection timeout. Check network/firewall.');
@@ -183,10 +229,22 @@ export function isDBConnected() {
 }
 
 export async function closeDB() {
+  // Close Mongoose connection
+  if (mongooseConnected && mongoose.connection.readyState !== 0) {
+    await mongoose.connection.close();
+    console.log('🔌 Mongoose connection closed');
+    mongooseConnected = false;
+  }
+  
+  // Close native MongoDB driver connection
   if (mongoClient) {
     await mongoClient.close();
-    console.log('🔌 MongoDB connection closed');
+    console.log('🔌 Native MongoDB connection closed');
     db = null;
     mongoClient = null;
   }
+}
+
+export function isMongooseConnected() {
+  return mongooseConnected && mongoose.connection.readyState === 1;
 }

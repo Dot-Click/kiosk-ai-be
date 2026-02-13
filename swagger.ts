@@ -17,6 +17,7 @@ interface SwaggerDoc {
   produces: string[];
   tags: any[];
   definitions?: any;
+  securityDefinitions?: any;
 }
 
 const doc: SwaggerDoc = {
@@ -29,10 +30,18 @@ const doc: SwaggerDoc = {
     },
   },
   host: process.env.HOST || "localhost:5000",
-  basePath: "/api/v1",
+  basePath: "/api",
   schemes: ["http", "https"],
   consumes: ["application/json", "multipart/form-data"],
   produces: ["application/json", "image/jpeg", "image/png", "image/gif"],
+  securityDefinitions: {
+    Bearer: {
+      type: "apiKey",
+      name: "Authorization",
+      in: "header",
+      description: "Enter your JWT token in the format: Bearer {token}",
+    },
+  },
   tags: [
     {
       name: "QR Code",
@@ -45,6 +54,10 @@ const doc: SwaggerDoc = {
     {
       name: "Auth",
       description: "Authentication endpoints",
+    },
+    {
+      name: "Admin",
+      description: "Admin authentication and dashboard endpoints",
     },
     {
       name: "Health",
@@ -364,6 +377,451 @@ const doc: SwaggerDoc = {
         example: "Error message description",
       },
     },
+    AdminLoginRequest: {
+      email: {
+        type: "string",
+        required: true,
+        format: "email",
+        example: "admin@example.com",
+        description: "Admin email address",
+      },
+      password: {
+        type: "string",
+        required: true,
+        example: "Admin123!",
+        description: "Admin password",
+      },
+    },
+    AdminLoginResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Admin logged in successfully",
+      },
+      data: {
+        jwtToken: {
+          type: "string",
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        },
+        user: {
+          id: {
+            type: "string",
+            example: "507f1f77bcf86cd799439011",
+          },
+          first_name: {
+            type: "string",
+            example: "Admin",
+          },
+          last_name: {
+            type: "string",
+            example: "User",
+          },
+          email: {
+            type: "string",
+            example: "admin@example.com",
+          },
+        },
+      },
+    },
+    DashboardStatsResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Dashboard stats retrieved",
+      },
+      data: {
+        totalOrders: {
+          type: "number",
+          example: 150,
+        },
+        totalPayments: {
+          type: "number",
+          example: 12500,
+        },
+        pendingOrders: {
+          type: "number",
+          example: 25,
+        },
+        completedOrders: {
+          type: "number",
+          example: 125,
+        },
+      },
+    },
+    UpdateProfileRequest: {
+      firstName: {
+        type: "string",
+        required: false,
+        example: "John",
+        description: "Admin's first name",
+      },
+      lastName: {
+        type: "string",
+        required: false,
+        example: "Doe",
+        description: "Admin's last name",
+      },
+      email: {
+        type: "string",
+        required: false,
+        format: "email",
+        example: "admin@example.com",
+        description: "Admin's email address",
+      },
+    },
+    UpdateProfileResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Profile updated successfully",
+      },
+      data: {
+        user: {
+          id: {
+            type: "string",
+            example: "507f1f77bcf86cd799439011",
+          },
+          first_name: {
+            type: "string",
+            example: "John",
+          },
+          last_name: {
+            type: "string",
+            example: "Doe",
+          },
+          email: {
+            type: "string",
+            example: "admin@example.com",
+          },
+        },
+      },
+    },
+    ChangePasswordRequest: {
+      currentPassword: {
+        type: "string",
+        required: true,
+        example: "OldPassword123!",
+        description: "Current password",
+      },
+      newPassword: {
+        type: "string",
+        required: true,
+        example: "NewPassword123!",
+        description: "New password (minimum 6 characters)",
+      },
+    },
+    ChangePasswordResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Password changed successfully",
+      },
+      data: {
+        type: "object",
+        example: {},
+      },
+    },
+    UpdateSiteSettingsRequest: {
+      siteName: {
+        type: "string",
+        required: false,
+        example: "My Kiosk Store",
+        description: "Site name",
+      },
+      siteUrl: {
+        type: "string",
+        required: false,
+        format: "url",
+        example: "https://example.com",
+        description: "Site URL",
+      },
+    },
+    UpdateSiteSettingsResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Site settings updated successfully",
+      },
+      data: {
+        siteName: {
+          type: "string",
+          example: "My Kiosk Store",
+        },
+        siteUrl: {
+          type: "string",
+          example: "https://example.com",
+        },
+      },
+    },
+    GetOrdersResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Orders retrieved",
+      },
+      data: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+              example: "507f1f77bcf86cd799439011",
+            },
+            orderNumber: {
+              type: "string",
+              example: "ORD-001",
+            },
+            customerName: {
+              type: "string",
+              example: "John Doe",
+            },
+            customerEmail: {
+              type: "string",
+              example: "john@example.com",
+            },
+            totalAmount: {
+              type: "number",
+              example: 49.99,
+            },
+            status: {
+              type: "string",
+              enum: ["pending", "processing", "completed", "cancelled"],
+              example: "pending",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              example: "2024-01-15T10:30:00.000Z",
+            },
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  productName: {
+                    type: "string",
+                    example: "Custom T-Shirt",
+                  },
+                  quantity: {
+                    type: "number",
+                    example: 1,
+                  },
+                  price: {
+                    type: "number",
+                    example: 49.99,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    GetOrderDetailsResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Order details retrieved",
+      },
+      data: {
+        _id: {
+          type: "string",
+          example: "507f1f77bcf86cd799439011",
+        },
+        orderNumber: {
+          type: "string",
+          example: "ORD-001",
+        },
+        customerName: {
+          type: "string",
+          example: "John Doe",
+        },
+        customerEmail: {
+          type: "string",
+          example: "john@example.com",
+        },
+        totalAmount: {
+          type: "number",
+          example: 49.99,
+        },
+        status: {
+          type: "string",
+          enum: ["pending", "processing", "completed", "cancelled"],
+          example: "pending",
+        },
+        createdAt: {
+          type: "string",
+          format: "date-time",
+          example: "2024-01-15T10:30:00.000Z",
+        },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              productName: {
+                type: "string",
+                example: "Custom T-Shirt",
+              },
+              quantity: {
+                type: "number",
+                example: 1,
+              },
+              price: {
+                type: "number",
+                example: 49.99,
+              },
+            },
+          },
+        },
+        shippingAddress: {
+          type: "object",
+          properties: {
+            street: {
+              type: "string",
+              example: "123 Main St",
+            },
+            city: {
+              type: "string",
+              example: "New York",
+            },
+            state: {
+              type: "string",
+              example: "NY",
+            },
+            zip: {
+              type: "string",
+              example: "10001",
+            },
+            country: {
+              type: "string",
+              example: "USA",
+            },
+          },
+        },
+      },
+    },
+    StripeSettingsResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Stripe settings retrieved",
+      },
+      data: {
+        _id: {
+          type: "string",
+          example: "507f1f77bcf86cd799439011",
+        },
+        publishableKey: {
+          type: "string",
+          example: "pk_test_...",
+        },
+        secretKey: {
+          type: "string",
+          example: "sk_test_...",
+          description: "Masked secret key (only last 4 characters visible)",
+        },
+        webhookSecret: {
+          type: "string",
+          example: "whsec_...",
+          description: "Masked webhook secret (only last 4 characters visible)",
+        },
+        isActive: {
+          type: "boolean",
+          example: true,
+        },
+        currency: {
+          type: "string",
+          example: "USD",
+        },
+        updatedAt: {
+          type: "string",
+          format: "date-time",
+          example: "2024-01-15T10:30:00.000Z",
+        },
+      },
+    },
+    UpdateStripeSettingsRequest: {
+      publishableKey: {
+        type: "string",
+        required: false,
+        example: "pk_test_...",
+        description: "Stripe publishable key",
+      },
+      secretKey: {
+        type: "string",
+        required: false,
+        example: "sk_test_...",
+        description: "Stripe secret key",
+      },
+      webhookSecret: {
+        type: "string",
+        required: false,
+        example: "whsec_...",
+        description: "Stripe webhook secret",
+      },
+      isActive: {
+        type: "boolean",
+        required: false,
+        example: true,
+        description: "Whether Stripe is active",
+      },
+      currency: {
+        type: "string",
+        required: false,
+        example: "USD",
+        description: "Default currency",
+      },
+    },
+    TestStripeConnectionResponse: {
+      success: {
+        type: "boolean",
+        example: true,
+      },
+      message: {
+        type: "string",
+        example: "Stripe connection test successful",
+      },
+      data: {
+        connected: {
+          type: "boolean",
+          example: true,
+        },
+        accountId: {
+          type: "string",
+          example: "acct_...",
+        },
+        accountEmail: {
+          type: "string",
+          example: "account@example.com",
+        },
+      },
+    },
   },
 };
 
@@ -374,6 +832,8 @@ const endpointsFiles = [
   "./src/router/qr.ts",
   "./src/router/upload.ts",
   "./src/router/auth.ts",
+  "./src/router/admin.ts",
+  "./src/router/stripeSettings.ts",
   "./src/app.ts",
 ];
 

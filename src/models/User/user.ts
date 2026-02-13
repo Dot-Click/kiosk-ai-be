@@ -3,7 +3,6 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import validator from "validator";
-import { NextFunction } from "express";
 
 dotenv.config({ path: ".././src/config/config.env" });
 
@@ -88,16 +87,21 @@ const userSchema = new Schema<IUser>({
 });
 
 // Hash password before saving
-userSchema.pre("save", async function (this: IUser, next: NextFunction) {
-  if (!this.isModified("password")) return next();
+userSchema.pre("save", async function (this: IUser) {
+  if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 // JWT Token
 userSchema.methods.getJWTToken = function (): string {
-  return jwt.sign({ _id: this._id }, process.env.JWT_SECRET || "");
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not set in environment variables");
+  }
+  return jwt.sign({ _id: this._id }, secret, {
+    expiresIn: "7d", // Token expires in 7 days
+  });
 };
 
 // Compare password
