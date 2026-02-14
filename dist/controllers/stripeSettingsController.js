@@ -13,10 +13,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.testStripeConnection = exports.updateStripeSettings = exports.getStripeSettings = void 0;
+const stripe_1 = __importDefault(require("stripe"));
 const StripeSettings_1 = __importDefault(require("../models/StripeSettings"));
 const SuccessHandler_1 = require("../utils/SuccessHandler");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 const mongoose_1 = __importDefault(require("mongoose"));
+const MASK_PLACEHOLDER = "****";
+function isMaskedSecret(value) {
+    return !value || value.includes(MASK_PLACEHOLDER) || value.length < 12;
+}
 // Helper function to ensure Mongoose is connected
 function ensureMongooseConnected() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -90,41 +95,43 @@ const updateStripeSettings = (req, res) => __awaiter(void 0, void 0, void 0, fun
     try {
         yield ensureMongooseConnected();
         const { publishableKey, secretKey, webhookSecret, isActive, currency, } = req.body;
-        // Validation
-        if (!publishableKey || !secretKey) {
-            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Publishable key and secret key are required"), req, res);
+        if (!publishableKey || typeof publishableKey !== "string") {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Publishable key is required"), req, res);
         }
-        // Validate publishable key format (starts with pk_)
         if (!publishableKey.startsWith("pk_")) {
-            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Invalid publishable key format"), req, res);
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Invalid publishable key format (must start with pk_)"), req, res);
         }
-        // Validate secret key format (starts with sk_)
-        if (!secretKey.startsWith("sk_")) {
-            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Invalid secret key format"), req, res);
-        }
-        // Find or create settings
         let settings = yield StripeSettings_1.default.findOne();
+        const useNewSecret = secretKey &&
+            typeof secretKey === "string" &&
+            !isMaskedSecret(secretKey) &&
+            secretKey.startsWith("sk_");
         if (!settings) {
+            if (!useNewSecret) {
+                return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Secret key is required when creating settings"), req, res);
+            }
             settings = yield StripeSettings_1.default.create({
-                publishableKey,
-                secretKey,
-                webhookSecret: webhookSecret || "",
-                isActive: isActive !== undefined ? isActive : false,
-                currency: currency || "usd",
+                publishableKey: publishableKey.trim(),
+                secretKey: secretKey.trim(),
+                webhookSecret: (webhookSecret && typeof webhookSecret === "string") ? webhookSecret.trim() : "",
+                isActive: isActive === true,
+                currency: currency && ["usd", "eur", "gbp", "cad", "aud"].includes(currency) ? currency : "usd",
                 updatedBy: "admin",
             });
         }
         else {
-            // Update existing settings
-            settings.publishableKey = publishableKey;
-            settings.secretKey = secretKey;
-            if (webhookSecret !== undefined) {
-                settings.webhookSecret = webhookSecret;
+            settings.publishableKey = publishableKey.trim();
+            if (useNewSecret) {
+                settings.secretKey = secretKey.trim();
             }
-            if (isActive !== undefined) {
+            if (webhookSecret !== undefined) {
+                settings.webhookSecret =
+                    typeof webhookSecret === "string" ? webhookSecret.trim() : "";
+            }
+            if (typeof isActive === "boolean") {
                 settings.isActive = isActive;
             }
-            if (currency) {
+            if (currency && ["usd", "eur", "gbp", "cad", "aud"].includes(currency)) {
                 settings.currency = currency;
             }
             settings.updatedBy = "admin";
@@ -153,38 +160,26 @@ const updateStripeSettings = (req, res) => __awaiter(void 0, void 0, void 0, fun
 exports.updateStripeSettings = updateStripeSettings;
 // Test Stripe Connection
 const testStripeConnection = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     try {
         yield ensureMongooseConnected();
         const settings = yield StripeSettings_1.default.findOne();
-        if (!settings || !settings.secretKey) {
-            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Stripe settings not configured"), req, res);
+        if (!settings || !settings.secretKey || settings.secretKey.length < 12) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Stripe settings not configured. Save your secret key first."), req, res);
         }
-        // Test connection using Stripe API
-        // Note: Install stripe package: npm install stripe
-        try {
-            let stripe;
-            try {
-                stripe = require("stripe");
-            }
-            catch (requireError) {
-                return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(500, "Stripe package not installed. Run: npm install stripe"), req, res);
-            }
-            const stripeClient = stripe(settings.secretKey);
-            const account = yield stripeClient.account.retrieve();
-            return SuccessHandler_1.SuccessHandler.handle(res, "Stripe connection test successful", {
-                connected: true,
-                accountId: account.id,
-                email: account.email,
-                country: account.country,
-            }, 200);
-        }
-        catch (stripeError) {
-            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, `Stripe connection failed: ${stripeError.message}`), req, res);
-        }
+        const stripe = new stripe_1.default(settings.secretKey);
+        const account = yield stripe.accounts.retrieve();
+        return SuccessHandler_1.SuccessHandler.handle(res, "Stripe connection test successful", {
+            connected: true,
+            accountId: account.id,
+            email: (_a = account.email) !== null && _a !== void 0 ? _a : undefined,
+            country: (_b = account.country) !== null && _b !== void 0 ? _b : undefined,
+        }, 200);
     }
     catch (error) {
+        const message = (error === null || error === void 0 ? void 0 : error.message) || ((_c = error === null || error === void 0 ? void 0 : error.raw) === null || _c === void 0 ? void 0 : _c.message) || "Stripe connection failed";
         console.error("Test Stripe connection error:", error);
-        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(500, error.message || "Failed to test Stripe connection"), req, res);
+        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, `Stripe connection failed: ${message}`), req, res);
     }
 });
 exports.testStripeConnection = testStripeConnection;

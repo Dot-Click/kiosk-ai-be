@@ -38,13 +38,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const stripeSettings = __importStar(require("../controllers/stripeSettingsController"));
+const requireAdminAuth_1 = require("../middleware/requireAdminAuth");
 const router = express_1.default.Router();
+router.use(requireAdminAuth_1.requireAdminAuth);
 /**
  * @swagger
  * /api/admin/stripe-settings:
  *   get:
  *     tags:
- *       - Admin
+ *       - Admin - Stripe Settings
  *     summary: Get Stripe payment settings
  *     description: Retrieve current Stripe payment settings (keys are masked for security)
  *     security:
@@ -61,13 +63,13 @@ const router = express_1.default.Router();
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/").get(stripeSettings.getStripeSettings);
+router.get("/", stripeSettings.getStripeSettings);
 /**
  * @swagger
  * /api/admin/stripe-settings:
  *   put:
  *     tags:
- *       - Admin
+ *       - Admin - Stripe Settings
  *     summary: Update Stripe payment settings
  *     description: Update Stripe payment settings including API keys, webhook secret, and activation status
  *     security:
@@ -97,13 +99,13 @@ router.route("/").get(stripeSettings.getStripeSettings);
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/").put(stripeSettings.updateStripeSettings);
+router.put("/", stripeSettings.updateStripeSettings);
 /**
  * @swagger
  * /api/admin/stripe-settings/test:
  *   post:
  *     tags:
- *       - Admin
+ *       - Admin - Stripe Settings
  *     summary: Test Stripe connection
  *     description: Test the Stripe API connection using the configured secret key
  *     security:
@@ -124,6 +126,6 @@ router.route("/").put(stripeSettings.updateStripeSettings);
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/test").post(stripeSettings.testStripeConnection);
+router.post("/test", stripeSettings.testStripeConnection);
 exports.default = router;
 //# sourceMappingURL=stripeSettings.js.map

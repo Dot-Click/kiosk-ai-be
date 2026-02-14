@@ -1,35 +1,59 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Time2Clean API",
-    "description": "Time2Clean API endpoints documentation. This API provides endpoints for QR code generation, image uploads, and user authentication.",
+    "title": "Kiosk AI API",
+    "description": "Kiosk AI Backend API. Covers Health, QR codes, Upload, Payment (Stripe), Products, and Admin (auth, orders, dashboard, settings, Stripe settings).",
     "version": "1.0.0",
     "contact": {
-      "name": "Time2Clean Support"
+      "name": "Kiosk AI Support"
     }
   },
   "host": "localhost:5000",
   "basePath": "/api",
   "tags": [
     {
+      "name": "Health",
+      "description": "Health check and service status"
+    },
+    {
       "name": "QR Code",
-      "description": "QR code generation and validation endpoints"
+      "description": "QR code generation, validation, and details"
     },
     {
       "name": "Upload",
-      "description": "Image upload and retrieval endpoints"
+      "description": "Image upload, check status, and image retrieval"
+    },
+    {
+      "name": "Payment",
+      "description": "Stripe config and create payment intent (checkout)"
+    },
+    {
+      "name": "Products",
+      "description": "Product create and list"
+    },
+    {
+      "name": "Admin - Auth",
+      "description": "Admin login and authentication"
+    },
+    {
+      "name": "Admin - Orders",
+      "description": "List orders and get order details"
+    },
+    {
+      "name": "Admin - Dashboard",
+      "description": "Dashboard statistics"
+    },
+    {
+      "name": "Admin - Settings",
+      "description": "Profile, password, and site settings"
+    },
+    {
+      "name": "Admin - Stripe Settings",
+      "description": "Stripe keys and test connection"
     },
     {
       "name": "Auth",
-      "description": "Authentication endpoints"
-    },
-    {
-      "name": "Admin",
-      "description": "Admin authentication and dashboard endpoints"
-    },
-    {
-      "name": "Health",
-      "description": "Health check endpoints"
+      "description": "Authentication endpoints (legacy)"
     }
   ],
   "schemes": [
@@ -57,7 +81,614 @@
   "paths": {
     "/health": {
       "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Service health and uptime (served at root /health, not under /api).",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
         "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "publishableKey": {
+                  "example": "any"
+                },
+                "secretKey": {
+                  "example": "any"
+                },
+                "webhookSecret": {
+                  "example": "any"
+                },
+                "isActive": {
+                  "example": "any"
+                },
+                "currency": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v1/qr/generate": {
+      "post": {
+        "tags": ["QR Code"],
+        "summary": "Generate QR code",
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v1/qr/validate/{code}": {
+      "get": {
+        "tags": ["QR Code"],
+        "summary": "Validate QR code",
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/qr/details/{code}": {
+      "get": {
+        "tags": ["QR Code"],
+        "summary": "Get QR details",
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v1/upload/upload": {
+      "post": {
+        "tags": ["Upload"],
+        "summary": "Upload image",
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v1/upload/check/{code}": {
+      "get": {
+        "tags": ["Upload"],
+        "summary": "Check upload status",
+        "description": "",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/upload/image/{code}": {
+      "get": {
+        "tags": ["Upload"],
+        "summary": "Get uploaded image",
+        "description": "",
+        "produces": [
+          "error"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/products/create": {
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create product",
+        "description": "Create a new product (admin/internal).",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "example": "any"
+                },
+                "productCategory": {
+                  "example": "any"
+                },
+                "price": {
+                  "example": "any"
+                },
+                "quantity": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/products/all": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get all products",
+        "description": "Returns list of all products.",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/login": {
+      "post": {
+        "tags": ["Admin - Auth"],
+        "summary": "Admin login",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/dashboard/stats": {
+      "get": {
+        "tags": ["Admin - Dashboard"],
+        "summary": "Get dashboard statistics",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/settings/profile": {
+      "put": {
+        "tags": ["Admin - Settings"],
+        "summary": "Update admin profile",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "example": "any"
+                },
+                "lastName": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/settings/password": {
+      "put": {
+        "tags": ["Admin - Settings"],
+        "summary": "Change admin password",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "currentPassword": {
+                  "example": "any"
+                },
+                "newPassword": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/settings/site": {
+      "put": {
+        "tags": ["Admin - Settings"],
+        "summary": "Update site settings",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "siteName": {
+                  "example": "any"
+                },
+                "siteUrl": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/orders": {
+      "get": {
+        "tags": ["Admin - Orders"],
+        "summary": "Get orders list",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/orders/{id}": {
+      "get": {
+        "tags": ["Admin - Orders"],
+        "summary": "Get order details",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/stripe-settings": {
+      "get": {
+        "tags": ["Admin - Stripe Settings"],
+        "summary": "Get Stripe settings",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Admin - Stripe Settings"],
+        "summary": "Update Stripe settings",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "publishableKey": {
+                  "example": "any"
+                },
+                "secretKey": {
+                  "example": "any"
+                },
+                "webhookSecret": {
+                  "example": "any"
+                },
+                "isActive": {
+                  "example": "any"
+                },
+                "currency": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/admin/stripe-settings/test": {
+      "post": {
+        "tags": ["Admin - Stripe Settings"],
+        "summary": "Test Stripe connection",
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/stripe-config": {
+      "get": {
+        "tags": ["Payment"],
+        "summary": "Get public Stripe config",
+        "description": "Returns publishable key, currency, and active status for checkout (no auth required).",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/payment/create-payment-intent": {
+      "post": {
+        "tags": ["Payment"],
+        "summary": "Create Stripe Payment Intent",
+        "description": "Creates a Stripe Payment Intent for checkout. Returns clientSecret for Stripe Elements.",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "amountInCents": {
+                  "example": "any"
+                },
+                "currency": {
+                  "example": "any"
+                },
+                "metadata": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -555,16 +1186,6 @@
         }
       }
     },
-    "/": {
-      "get": {
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/test": {
       "post": {
         "description": "",
@@ -575,158 +1196,10 @@
         }
       }
     },
-    "/api/v1/qr/generate": {
+    "/create": {
       "post": {
         "description": "",
         "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/api/v1/qr/validate/{code}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/qr/details/{code}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/api/v1/upload/upload": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "code": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/api/v1/upload/check/{code}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/upload/image/{code}": {
-      "get": {
-        "description": "",
-        "produces": [
-          "error"
-        ],
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/products/create": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          },
           {
             "name": "body",
             "in": "body",
@@ -750,296 +1223,18 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "default": {
+            "description": ""
           }
         }
       }
     },
-    "/api/products/all": {
+    "/all": {
       "get": {
         "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/login": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "example": "any"
-                },
-                "password": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/dashboard/stats": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/settings/profile": {
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "firstName": {
-                  "example": "any"
-                },
-                "lastName": {
-                  "example": "any"
-                },
-                "email": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/settings/password": {
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "currentPassword": {
-                  "example": "any"
-                },
-                "newPassword": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/settings/site": {
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "siteName": {
-                  "example": "any"
-                },
-                "siteUrl": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/orders": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "type": "string"
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/orders/{id}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/stripe-settings/": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "publishableKey": {
-                  "example": "any"
-                },
-                "secretKey": {
-                  "example": "any"
-                },
-                "webhookSecret": {
-                  "example": "any"
-                },
-                "isActive": {
-                  "example": "any"
-                },
-                "currency": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/admin/stripe-settings/test": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "origin",
-            "in": "header",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
+          "default": {
+            "description": ""
           }
         }
       }
@@ -3483,6 +3678,262 @@
                 "example": {
                   "type": "string",
                   "example": "account@example.com"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "StripeConfigResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Stripe config retrieved"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "publishableKey": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "pk_test_..."
+                }
+              }
+            },
+            "currency": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "usd"
+                }
+              }
+            },
+            "isActive": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "boolean"
+                },
+                "example": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "CreatePaymentIntentRequest": {
+      "type": "object",
+      "properties": {
+        "amountInCents": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "number"
+            },
+            "required": {
+              "type": "boolean",
+              "example": true
+            },
+            "example": {
+              "type": "number",
+              "example": 2999
+            },
+            "description": {
+              "type": "string",
+              "example": "Amount in cents"
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "object"
+            },
+            "description": {
+              "type": "string",
+              "example": "Optional key-value metadata (e.g. quantity, fulfillment)"
+            }
+          }
+        }
+      }
+    },
+    "CreatePaymentIntentResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Payment intent created"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "clientSecret": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "pi_..._secret_..."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ProductCreateRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Custom Mug"
+            }
+          }
+        },
+        "price": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "number"
+            },
+            "example": {
+              "type": "number",
+              "example": 29.99
+            }
+          }
+        },
+        "description": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Custom AI mug print"
+            }
+          }
+        }
+      }
+    },
+    "ProductListResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "boolean"
+            },
+            "example": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "string"
+            },
+            "example": {
+              "type": "string",
+              "example": "Products retrieved"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "example": "array"
+            },
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "object"
                 }
               }
             }

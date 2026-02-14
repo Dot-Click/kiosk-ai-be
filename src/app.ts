@@ -22,6 +22,7 @@ import { imageCorsMiddleware } from './middleware/imageCors';
 import productRoutes from "./router/product";
 import adminRoutes from "./router/admin";
 import stripeSettingsRoutes from "./router/stripeSettings";
+import paymentRoutes from "./router/payment";
 
 dotenv.config();
 
@@ -47,7 +48,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(
   {
     customCss: customCss,
     customJs: customJs,
-    customSiteTitle: 'Time2Clean API Documentation',
+    customSiteTitle: 'Kiosk AI API Documentation',
     swaggerOptions: {
       persistAuthorization: true,
       displayRequestDuration: true,
@@ -70,7 +71,7 @@ app.use('/api/v1/upload/image/:code', imageCorsMiddleware);
 app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/stripe-settings", stripeSettingsRoutes);
-
+app.use("/api", paymentRoutes);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

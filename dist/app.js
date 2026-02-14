@@ -58,6 +58,7 @@ const imageCors_1 = require("./middleware/imageCors");
 const product_1 = __importDefault(require("./router/product"));
 const admin_1 = __importDefault(require("./router/admin"));
 const stripeSettings_1 = __importDefault(require("./router/stripeSettings"));
+const payment_1 = __importDefault(require("./router/payment"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -76,7 +77,7 @@ app.use((0, morgan_1.default)('combined'));
 app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument, {
     customCss: customCss,
     customJs: customJs,
-    customSiteTitle: 'Time2Clean API Documentation',
+    customSiteTitle: 'Kiosk AI API Documentation',
     swaggerOptions: {
         persistAuthorization: true,
         displayRequestDuration: true,
@@ -97,6 +98,7 @@ app.use('/api/v1/upload/image/:code', imageCors_1.imageCorsMiddleware);
 app.use("/api/products", product_1.default);
 app.use("/api/admin", admin_1.default);
 app.use("/api/admin/stripe-settings", stripeSettings_1.default);
+app.use("/api", payment_1.default);
 // Health check
 app.get('/health', (req, res) => {
     res.json({

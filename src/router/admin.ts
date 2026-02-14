@@ -8,7 +8,7 @@ const router: Router = express.Router();
  * /api/admin/login:
  *   post:
  *     tags:
- *       - Admin
+ *       - Admin - Auth
  *     summary: Admin login
  *     description: Authenticate admin user and return JWT token
  *     consumes:
@@ -39,7 +39,7 @@ router.route("/login").post(admin.adminLogin);
  * /api/admin/dashboard/stats:
  *   get:
  *     tags:
- *       - Admin
+ *       - Admin - Dashboard
  *     summary: Get dashboard statistics
  *     description: Retrieve dashboard statistics including total orders, payments, and order status counts
  *     security:
@@ -63,7 +63,7 @@ router.route("/dashboard/stats").get(admin.getDashboardStats);
  * /api/admin/settings/profile:
  *   put:
  *     tags:
- *       - Admin
+ *       - Admin - Settings
  *     summary: Update admin profile
  *     description: Update admin user profile information (first name, last name, email)
  *     security:
@@ -100,7 +100,7 @@ router.route("/settings/profile").put(admin.updateProfile);
  * /api/admin/settings/password:
  *   put:
  *     tags:
- *       - Admin
+ *       - Admin - Settings
  *     summary: Change admin password
  *     description: Change admin user password with current password verification
  *     security:
@@ -137,7 +137,7 @@ router.route("/settings/password").put(admin.changePassword);
  * /api/admin/settings/site:
  *   put:
  *     tags:
- *       - Admin
+ *       - Admin - Settings
  *     summary: Update site settings
  *     description: Update site-wide settings such as site name and URL
  *     security:
@@ -170,7 +170,7 @@ router.route("/settings/site").put(admin.updateSiteSettings);
  * /api/admin/orders:
  *   get:
  *     tags:
- *       - Admin
+ *       - Admin - Orders
  *     summary: Get orders list
  *     description: Retrieve list of orders with optional filtering by status and search
  *     security:
@@ -207,7 +207,7 @@ router.route("/orders").get(admin.getOrders);
  * /api/admin/orders/{id}:
  *   get:
  *     tags:
- *       - Admin
+ *       - Admin - Orders
  *     summary: Get order details
  *     description: Retrieve detailed information about a specific order
  *     security:

@@ -64,6 +64,7 @@
     "qrcode": "^1.5.4",
     "react-router-dom": "^7.12.0",
     "sharp": "^0.34.5",
+    "stripe": "^17.7.0",
     "swagger-autogen": "^2.23.5",
     "swagger-ui-express": "^5.0.0",
     "uuid": "^13.0.0",

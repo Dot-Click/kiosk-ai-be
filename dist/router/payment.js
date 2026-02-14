@@ -32,21 +32,39 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const product = __importStar(require("../controllers/productController"));
-const router = express_1.default.Router();
+const express_1 = require("express");
+const payment = __importStar(require("../controllers/paymentController"));
+const router = (0, express_1.Router)();
 /**
  * @swagger
- * /products/create:
+ * /stripe-config:
+ *   get:
+ *     tags:
+ *       - Payment
+ *     summary: Get public Stripe config
+ *     description: Returns publishable key, currency, and active status for checkout (no auth required).
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: Stripe config retrieved
+ *         schema:
+ *           $ref: '#/definitions/StripeConfigResponse'
+ *       500:
+ *         description: Server error
+ *         schema:
+ *           $ref: '#/definitions/ErrorResponse'
+ */
+router.get("/stripe-config", payment.getPublicStripeConfig);
+/**
+ * @swagger
+ * /payment/create-payment-intent:
  *   post:
  *     tags:
- *       - Products
- *     summary: Create product
- *     description: Create a new product (admin/internal).
+ *       - Payment
+ *     summary: Create Stripe Payment Intent
+ *     description: Creates a Stripe Payment Intent for checkout. Returns clientSecret for Stripe Elements.
  *     consumes:
  *       - application/json
  *     produces:
@@ -54,11 +72,14 @@ const router = express_1.default.Router();
  *     parameters:
  *       - in: body
  *         name: body
+ *         required: true
  *         schema:
- *           $ref: '#/definitions/ProductCreateRequest'
+ *           $ref: '#/definitions/CreatePaymentIntentRequest'
  *     responses:
  *       200:
- *         description: Product created
+ *         description: Payment intent created
+ *         schema:
+ *           $ref: '#/definitions/CreatePaymentIntentResponse'
  *       400:
  *         description: Bad request
  *         schema:
@@ -68,27 +89,6 @@ const router = express_1.default.Router();
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/create").post(product.createProduct);
-/**
- * @swagger
- * /products/all:
- *   get:
- *     tags:
- *       - Products
- *     summary: Get all products
- *     description: Returns list of all products.
- *     produces:
- *       - application/json
- *     responses:
- *       200:
- *         description: Products retrieved
- *         schema:
- *           $ref: '#/definitions/ProductListResponse'
- *       500:
- *         description: Server error
- *         schema:
- *           $ref: '#/definitions/ErrorResponse'
- */
-router.route("/all").get(product.getAllProducts);
+router.post("/payment/create-payment-intent", payment.createPaymentIntent);
 exports.default = router;
-//# sourceMappingURL=product.js.map
+//# sourceMappingURL=payment.js.map

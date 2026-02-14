@@ -1,14 +1,17 @@
 import express, { Router } from "express";
 import * as stripeSettings from "../controllers/stripeSettingsController";
+import { requireAdminAuth } from "../middleware/requireAdminAuth";
 
 const router: Router = express.Router();
+
+router.use(requireAdminAuth);
 
 /**
  * @swagger
  * /api/admin/stripe-settings:
  *   get:
  *     tags:
- *       - Admin
+ *       - Admin - Stripe Settings
  *     summary: Get Stripe payment settings
  *     description: Retrieve current Stripe payment settings (keys are masked for security)
  *     security:
@@ -25,14 +28,14 @@ const router: Router = express.Router();
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/").get(stripeSettings.getStripeSettings);
+router.get("/", stripeSettings.getStripeSettings);
 
 /**
  * @swagger
  * /api/admin/stripe-settings:
  *   put:
  *     tags:
- *       - Admin
+ *       - Admin - Stripe Settings
  *     summary: Update Stripe payment settings
  *     description: Update Stripe payment settings including API keys, webhook secret, and activation status
  *     security:
@@ -62,14 +65,14 @@ router.route("/").get(stripeSettings.getStripeSettings);
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/").put(stripeSettings.updateStripeSettings);
+router.put("/", stripeSettings.updateStripeSettings);
 
 /**
  * @swagger
  * /api/admin/stripe-settings/test:
  *   post:
  *     tags:
- *       - Admin
+ *       - Admin - Stripe Settings
  *     summary: Test Stripe connection
  *     description: Test the Stripe API connection using the configured secret key
  *     security:
@@ -90,6 +93,6 @@ router.route("/").put(stripeSettings.updateStripeSettings);
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/test").post(stripeSettings.testStripeConnection);
+router.post("/test", stripeSettings.testStripeConnection);
 
 export default router;

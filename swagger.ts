@@ -22,11 +22,11 @@ interface SwaggerDoc {
 
 const doc: SwaggerDoc = {
   info: {
-    title: "Time2Clean API",
-    description: "Time2Clean API endpoints documentation. This API provides endpoints for QR code generation, image uploads, and user authentication.",
+    title: "Kiosk AI API",
+    description: "Kiosk AI Backend API. Covers Health, QR codes, Upload, Payment (Stripe), Products, and Admin (auth, orders, dashboard, settings, Stripe settings).",
     version: "1.0.0",
     contact: {
-      name: "Time2Clean Support",
+      name: "Kiosk AI Support",
     },
   },
   host: process.env.HOST || "localhost:5000",
@@ -43,26 +43,17 @@ const doc: SwaggerDoc = {
     },
   },
   tags: [
-    {
-      name: "QR Code",
-      description: "QR code generation and validation endpoints",
-    },
-    {
-      name: "Upload",
-      description: "Image upload and retrieval endpoints",
-    },
-    {
-      name: "Auth",
-      description: "Authentication endpoints",
-    },
-    {
-      name: "Admin",
-      description: "Admin authentication and dashboard endpoints",
-    },
-    {
-      name: "Health",
-      description: "Health check endpoints",
-    },
+    { name: "Health", description: "Health check and service status" },
+    { name: "QR Code", description: "QR code generation, validation, and details" },
+    { name: "Upload", description: "Image upload, check status, and image retrieval" },
+    { name: "Payment", description: "Stripe config and create payment intent (checkout)" },
+    { name: "Products", description: "Product create and list" },
+    { name: "Admin - Auth", description: "Admin login and authentication" },
+    { name: "Admin - Orders", description: "List orders and get order details" },
+    { name: "Admin - Dashboard", description: "Dashboard statistics" },
+    { name: "Admin - Settings", description: "Profile, password, and site settings" },
+    { name: "Admin - Stripe Settings", description: "Stripe keys and test connection" },
+    { name: "Auth", description: "Authentication endpoints (legacy)" },
   ],
   definitions: {
     QRGenerateRequest: {
@@ -822,19 +813,49 @@ const doc: SwaggerDoc = {
         },
       },
     },
+    StripeConfigResponse: {
+      success: { type: "boolean", example: true },
+      message: { type: "string", example: "Stripe config retrieved" },
+      data: {
+        publishableKey: { type: "string", example: "pk_test_..." },
+        currency: { type: "string", example: "usd" },
+        isActive: { type: "boolean", example: true },
+      },
+    },
+    CreatePaymentIntentRequest: {
+      amountInCents: { type: "number", required: true, example: 2999, description: "Amount in cents" },
+      metadata: { type: "object", description: "Optional key-value metadata (e.g. quantity, fulfillment)" },
+    },
+    CreatePaymentIntentResponse: {
+      success: { type: "boolean", example: true },
+      message: { type: "string", example: "Payment intent created" },
+      data: { clientSecret: { type: "string", example: "pi_..._secret_..." } },
+    },
+    ProductCreateRequest: {
+      name: { type: "string", example: "Custom Mug" },
+      price: { type: "number", example: 29.99 },
+      description: { type: "string", example: "Custom AI mug print" },
+    },
+    ProductListResponse: {
+      success: { type: "boolean", example: true },
+      message: { type: "string", example: "Products retrieved" },
+      data: { type: "array", items: { type: "object" } },
+    },
   },
 };
 
 const swaggerAutogenInstance = swaggerAutogen();
 const outputFile = "./swagger_output.json";
 const endpointsFiles = [
+  "./src/app.ts",
   "./src/router/index.ts",
   "./src/router/qr.ts",
   "./src/router/upload.ts",
   "./src/router/auth.ts",
   "./src/router/admin.ts",
   "./src/router/stripeSettings.ts",
-  "./src/app.ts",
+  "./src/router/payment.ts",
+  "./src/router/product.ts",
 ];
 
 swaggerAutogenInstance(outputFile, endpointsFiles, doc).then(() => {
