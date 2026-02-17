@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import User from "../models/User/user";
+import Order from "../models/Order";
 import { SuccessHandler } from "../utils/SuccessHandler";
 import { ErrorHandler, ApiError } from "../utils/ErrorHandler";
 import bcrypt from "bcryptjs";
@@ -37,32 +38,32 @@ async function ensureMongooseConnected() {
   if (mongoose.connection.readyState === 1) {
     return;
   }
-  
+
   // If connecting, wait for it
   if (mongoose.connection.readyState === 2) {
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Mongoose connection timeout"));
       }, 10000);
-      
+
       mongoose.connection.once('connected', () => {
         clearTimeout(timeout);
         resolve();
       });
-      
+
       mongoose.connection.once('error', (err) => {
         clearTimeout(timeout);
         reject(err);
       });
     });
   }
-  
+
   // If disconnected or uninitialized, connect now
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) {
     throw new Error("MONGODB_URI not set");
   }
-  
+
   await mongoose.connect(mongoUri, {
     dbName: 'kiosk-ai',
     serverSelectionTimeoutMS: 10000,
@@ -75,7 +76,7 @@ export const adminLogin = async (req: Request, res: Response) => {
   try {
     // Ensure Mongoose is connected before using models
     await ensureMongooseConnected();
-    
+
     const { email, password } = req.body;
 
     // Fast validation - return early if invalid
@@ -197,20 +198,30 @@ export const adminLogin = async (req: Request, res: Response) => {
 // Get Dashboard Stats - Optimized
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
-    // TODO: Replace with actual database queries when Order and Payment models are created
-    // For now, return mock data
-    const stats = {
-      totalOrders: 0,
-      totalPayments: 0,
-      pendingOrders: 0,
-      completedOrders: 0,
-    };
+    await ensureMongooseConnected();
 
-    // Example: When Order model exists, use:
-    // const totalOrders = await Order.countDocuments();
-    // const totalPayments = await Payment.aggregate([{ $sum: "$amount" }]);
-    // const pendingOrders = await Order.countDocuments({ status: "pending" });
-    // const completedOrders = await Order.countDocuments({ status: "completed" });
+    const totalOrders = await Order.countDocuments();
+    const completedOrders = await Order.countDocuments({ status: "completed" });
+    const pendingOrders = await Order.countDocuments({ status: "pending" });
+
+    const revenueResult = await Order.aggregate([
+      { $match: { "payment.status": "paid" } },
+      { $group: { _id: null, total: { $sum: "$payment.amount" } } }
+    ]);
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+    const recentActivity = await Order.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('orderNumber customer.name status createdAt payment.amount');
+
+    const stats = {
+      totalOrders: totalOrders || 0,
+      totalRevenue: totalRevenue || 0,
+      pendingOrders: pendingOrders || 0,
+      completedOrders: completedOrders || 0,
+      recentActivity: recentActivity || []
+    };
 
     return SuccessHandler.handle(res, "Dashboard stats retrieved", stats, 200);
   } catch (error: any) {
@@ -227,7 +238,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 export const updateProfile = async (req: Request, res: Response) => {
   try {
     await ensureMongooseConnected();
-    
+
     const userId = getUserIdFromToken(req);
     if (!userId) {
       return ErrorHandler.handleError(
@@ -293,7 +304,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 export const changePassword = async (req: Request, res: Response) => {
   try {
     await ensureMongooseConnected();
-    
+
     const userId = getUserIdFromToken(req);
     if (!userId) {
       return ErrorHandler.handleError(
@@ -360,7 +371,7 @@ export const changePassword = async (req: Request, res: Response) => {
 export const updateSiteSettings = async (req: Request, res: Response) => {
   try {
     await ensureMongooseConnected();
-    
+
     const { siteName, siteUrl } = req.body;
 
     // TODO: Create SiteSettings model to store these settings
@@ -386,49 +397,46 @@ export const updateSiteSettings = async (req: Request, res: Response) => {
   }
 };
 
-// Get Orders List
+// Get Orders List - Optimized
 export const getOrders = async (req: Request, res: Response) => {
   try {
     await ensureMongooseConnected();
-    
-    const { status, search } = req.query;
 
-    // TODO: Replace with actual Order model when created
-    // For now, return mock data
-    const mockOrders = [
-      {
-        _id: "1",
-        orderNumber: "ORD-001",
-        customerName: "John Doe",
-        customerEmail: "john@example.com",
-        totalAmount: 49.99,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        items: [
-          { productName: "Custom T-Shirt", quantity: 1, price: 49.99 },
-        ],
-      },
-    ];
+    const { status, search, page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
 
-    let filteredOrders = mockOrders;
+    let query: any = {};
 
     // Filter by status
     if (status && status !== "all") {
-      filteredOrders = filteredOrders.filter((order) => order.status === status);
+      query.status = status;
     }
 
     // Search filter
     if (search) {
-      const searchLower = (search as string).toLowerCase();
-      filteredOrders = filteredOrders.filter(
-        (order) =>
-          order.orderNumber.toLowerCase().includes(searchLower) ||
-          order.customerName.toLowerCase().includes(searchLower) ||
-          order.customerEmail.toLowerCase().includes(searchLower)
-      );
+      const searchRegex = new RegExp(search as string, 'i');
+      query.$or = [
+        { orderNumber: searchRegex },
+        { "customer.name": searchRegex },
+        { "customer.email": searchRegex }
+      ];
     }
 
-    return SuccessHandler.handle(res, "Orders retrieved", filteredOrders, 200);
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const total = await Order.countDocuments(query);
+
+    return SuccessHandler.handle(res, "Orders retrieved", {
+      orders,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / Number(limit))
+      }
+    }, 200);
   } catch (error: any) {
     console.error("Get orders error:", error);
     return ErrorHandler.handleError(
@@ -439,38 +447,86 @@ export const getOrders = async (req: Request, res: Response) => {
   }
 };
 
-// Get Order Details
+// Get Order Details - Optimized
 export const getOrderDetails = async (req: Request, res: Response) => {
   try {
     await ensureMongooseConnected();
-    
-    const { id } = req.params;
 
-    // TODO: Replace with actual Order model when created
-    // For now, return mock data
-    const mockOrder = {
-      _id: id,
-      orderNumber: "ORD-001",
-      customerName: "John Doe",
-      customerEmail: "john@example.com",
-      totalAmount: 49.99,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      items: [
-        { productName: "Custom T-Shirt", quantity: 1, price: 49.99 },
-      ],
-      shippingAddress: {
-        street: "123 Main St",
-        city: "New York",
-        state: "NY",
-        zip: "10001",
-        country: "USA",
-      },
-    };
+    let { id } = req.params;
+    // Sanitize id: remove any literal quotes that might come from frontend encoding
+    if (id) id = id.replace(/['"]+/g, '');
 
-    return SuccessHandler.handle(res, "Order details retrieved", mockOrder, 200);
+    let order;
+
+    // 1. Explicitly try to find by orderNumber as a string
+    order = await Order.findOne({ orderNumber: String(id) });
+
+    // 2. If not found, only then try to validate and find by ObjectId
+    if (!order && mongoose.Types.ObjectId.isValid(id)) {
+      try {
+        order = await Order.findById(id);
+      } catch (err) {
+        console.error("ObjectId find error:", err);
+      }
+    }
+
+    if (!order) {
+      return ErrorHandler.handleError(new ApiError(404, "Order not found"), req, res);
+    }
+
+    return SuccessHandler.handle(res, "Order details retrieved", order, 200);
   } catch (error: any) {
     console.error("Get order details error:", error);
+    return ErrorHandler.handleError(
+      new ApiError(500, error.message || "Internal server error"),
+      req,
+      res
+    );
+  }
+};
+// Update Order Status
+export const updateOrderStatus = async (req: Request, res: Response) => {
+  try {
+    await ensureMongooseConnected();
+
+    let { id } = req.params;
+    // Sanitize id: remove any literal quotes
+    if (id) id = id.replace(/['"]+/g, '');
+
+    const { status } = req.body;
+
+    if (!status) {
+      return ErrorHandler.handleError(new ApiError(400, "Status is required"), req, res);
+    }
+
+    const validStatuses = ["pending", "processing", "completed", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return ErrorHandler.handleError(new ApiError(400, "Invalid status"), req, res);
+    }
+
+    let order;
+    // 1. Try orderNumber first
+    order = await Order.findOne({ orderNumber: String(id) });
+
+    // 2. Fallback to ObjectId with safety check
+    if (!order && mongoose.Types.ObjectId.isValid(id)) {
+      try {
+        order = await Order.findById(id);
+      } catch (err) {
+        console.error("ObjectId find error in updateOrderStatus:", err);
+      }
+    }
+
+    if (!order) {
+      return ErrorHandler.handleError(new ApiError(404, "Order not found"), req, res);
+    }
+
+    order.status = status as any;
+    await order.save();
+
+    return SuccessHandler.handle(res, `Order status updated to ${status}`, order, 200);
+  } catch (error: any) {
+    console.error("Update order status error:", error);
     return ErrorHandler.handleError(
       new ApiError(500, error.message || "Internal server error"),
       req,

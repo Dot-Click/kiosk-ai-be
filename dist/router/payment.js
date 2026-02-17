@@ -38,7 +38,7 @@ const payment = __importStar(require("../controllers/paymentController"));
 const router = (0, express_1.Router)();
 /**
  * @swagger
- * /stripe-config:
+ * /payment/config:
  *   get:
  *     tags:
  *       - Payment
@@ -56,15 +56,15 @@ const router = (0, express_1.Router)();
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.get("/stripe-config", payment.getPublicStripeConfig);
+router.get("/config", payment.getPublicStripeConfig);
 /**
  * @swagger
- * /payment/create-payment-intent:
+ * /payment/create-session:
  *   post:
  *     tags:
  *       - Payment
- *     summary: Create Stripe Payment Intent
- *     description: Creates a Stripe Payment Intent for checkout. Returns clientSecret for Stripe Elements.
+ *     summary: Create Stripe Checkout Session
+ *     description: Creates a hosted Stripe Checkout Session and returns the URL.
  *     consumes:
  *       - application/json
  *     produces:
@@ -74,21 +74,64 @@ router.get("/stripe-config", payment.getPublicStripeConfig);
  *         name: body
  *         required: true
  *         schema:
- *           $ref: '#/definitions/CreatePaymentIntentRequest'
+ *           type: object
+ *           properties:
+ *             items:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name: { type: string }
+ *                   quantity: { type: number }
+ *                   price: { type: number }
+ *                   image: { type: string }
+ *             customer:
+ *               type: object
+ *               properties:
+ *                 name: { type: string }
+ *                 email: { type: string }
+ *                 phone: { type: string }
+ *             fulfillment:
+ *               type: object
+ *               properties:
+ *                 method: { type: string }
+ *                 address: { type: object }
  *     responses:
  *       200:
- *         description: Payment intent created
+ *         description: Session created
  *         schema:
- *           $ref: '#/definitions/CreatePaymentIntentResponse'
- *       400:
- *         description: Bad request
- *         schema:
- *           $ref: '#/definitions/ErrorResponse'
+ *           type: object
+ *           properties:
+ *             success: { type: boolean }
+ *             data:
+ *               type: object
+ *               properties:
+ *                 url: { type: string }
+ *                 sessionId: { type: string }
  *       500:
  *         description: Server error
- *         schema:
- *           $ref: '#/definitions/ErrorResponse'
  */
-router.post("/payment/create-payment-intent", payment.createPaymentIntent);
+router.post("/create-session", payment.createCheckoutSession);
+/**
+ * @swagger
+ * /payment/verify-session:
+ *   post:
+ *     tags:
+ *       - Payment
+ *     summary: Verify Session & Create Order
+ *     description: Verifies a successful Stripe session and creates the order in DB.
+ *     parameters:
+ *       - in: body
+ *         name: body
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             sessionId: { type: string }
+ *     responses:
+ *       200:
+ *         description: Order verified and created
+ */
+router.post("/verify-session", payment.verifySession);
 exports.default = router;
 //# sourceMappingURL=payment.js.map

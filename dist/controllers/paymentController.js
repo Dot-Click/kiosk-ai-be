@@ -12,10 +12,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createPaymentIntent = exports.getPublicStripeConfig = void 0;
+exports.verifySession = exports.createCheckoutSession = exports.getPublicStripeConfig = void 0;
 exports.getStripeConfig = getStripeConfig;
 const stripe_1 = __importDefault(require("stripe"));
 const StripeSettings_1 = __importDefault(require("../models/StripeSettings"));
+const Order_1 = __importDefault(require("../models/Order"));
 const SuccessHandler_1 = require("../utils/SuccessHandler");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -36,10 +37,6 @@ function ensureMongooseConnected() {
         yield mongoose_1.default.connect(uri, { dbName: "kiosk-ai", serverSelectionTimeoutMS: 10000, socketTimeoutMS: 45000 });
     });
 }
-/**
- * Get Stripe config: from DB (StripeSettings) if present and valid, else from env.
- * Env: STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_CURRENCY (optional, default usd).
- */
 function getStripeConfig() {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
@@ -75,9 +72,6 @@ function getStripeConfig() {
         };
     });
 }
-/**
- * GET /api/stripe-config — public, for checkout. Returns publishableKey, currency, isActive.
- */
 const getPublicStripeConfig = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const config = yield getStripeConfig();
@@ -96,35 +90,145 @@ const getPublicStripeConfig = (req, res) => __awaiter(void 0, void 0, void 0, fu
 });
 exports.getPublicStripeConfig = getPublicStripeConfig;
 /**
- * POST /api/payment/create-payment-intent
- * Body: { amountInCents: number, currency?: string, metadata?: object }
- * Returns: { clientSecret: string }
+ * Create Checkout Session (Hosted Page)
  */
-const createPaymentIntent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     try {
         const config = yield getStripeConfig();
         if (!config || !config.isActive) {
-            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(503, "Stripe is not configured or not active. Configure it in Admin → Stripe Settings or set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY in .env."), req, res);
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(503, "Stripe is not configured. Please check admin settings."), req, res);
         }
-        const { amountInCents, currency, metadata } = req.body;
-        const amount = Math.round(Number(amountInCents));
-        if (!Number.isFinite(amount) || amount < 50) {
-            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "amountInCents must be at least 50 (0.50)"), req, res);
-        }
+        const { items, customer, fulfillment } = req.body;
+        // items: [{ name, quantity, price (in cents), image? }]
         const stripe = new stripe_1.default(config.secretKey);
-        const intent = yield stripe.paymentIntents.create({
-            amount,
-            currency: currency || config.currency,
-            automatic_payment_methods: { enabled: true },
-            metadata: typeof metadata === "object" && metadata !== null ? metadata : undefined,
+        const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
+        const lineItems = items.map((item) => ({
+            price_data: {
+                currency: config.currency,
+                product_data: {
+                    name: item.name,
+                    images: item.image ? [item.image] : [],
+                },
+                unit_amount: Math.round(item.price), // stored as cents
+            },
+            quantity: item.quantity,
+        }));
+        // Add shipping if Doorstep
+        if (fulfillment.method === "doorstep") {
+            lineItems.push({
+                price_data: {
+                    currency: config.currency,
+                    product_data: {
+                        name: "Doorstep Delivery Status",
+                    },
+                    unit_amount: 500, // $5.00
+                },
+                quantity: 1
+            });
+        }
+        const session = yield stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            line_items: lineItems,
+            mode: "payment",
+            success_url: `${frontendUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${frontendUrl}/checkout/failed`,
+            customer_email: customer.email || undefined,
+            metadata: {
+                customerName: customer.name,
+                customerPhone: customer.phone,
+                fulfillmentMethod: fulfillment.method,
+                addressStreet: ((_a = fulfillment.address) === null || _a === void 0 ? void 0 : _a.street) || "",
+                addressCity: ((_b = fulfillment.address) === null || _b === void 0 ? void 0 : _b.city) || "",
+                addressZip: ((_c = fulfillment.address) === null || _c === void 0 ? void 0 : _c.zip) || "",
+            },
         });
-        return SuccessHandler_1.SuccessHandler.handle(res, "Payment intent created", { clientSecret: intent.client_secret }, 200);
+        return SuccessHandler_1.SuccessHandler.handle(res, "Checkout session created", { url: session.url, sessionId: session.id }, 200);
     }
     catch (error) {
-        const msg = (error === null || error === void 0 ? void 0 : error.message) || ((_a = error === null || error === void 0 ? void 0 : error.raw) === null || _a === void 0 ? void 0 : _a.message) || "Failed to create payment intent";
-        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, `Payment error: ${msg}`), req, res);
+        console.error("Create session error:", error);
+        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, `Payment error: ${error.message}`), req, res);
     }
 });
-exports.createPaymentIntent = createPaymentIntent;
+exports.createCheckoutSession = createCheckoutSession;
+/**
+ * Verify Session & Create Order
+ * Called by frontend on Success page to confirm payment and save order
+ */
+const verifySession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        yield ensureMongooseConnected();
+        const { sessionId } = req.body;
+        if (!sessionId) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Session ID required"), req, res);
+        }
+        const config = yield getStripeConfig();
+        if (!config)
+            throw new Error("Stripe not configured");
+        const stripe = new stripe_1.default(config.secretKey);
+        // Expand payment_intent to get the ID
+        const session = yield stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ["payment_intent"],
+        });
+        if (session.payment_status !== "paid") {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Payment not verified"), req, res);
+        }
+        // Check if order already exists
+        let order = yield Order_1.default.findOne({ "payment.stripeSessionId": sessionId });
+        if (!order) {
+            // Create New Order
+            const metadata = session.metadata || {};
+            const lineItems = yield stripe.checkout.sessions.listLineItems(sessionId);
+            const orderItems = lineItems.data.map(li => ({
+                productName: li.description,
+                quantity: li.quantity,
+                price: li.amount_total / 100, // convert back to standard unit
+            }));
+            const paymentIntentId = typeof session.payment_intent === 'string'
+                ? session.payment_intent
+                : (_a = session.payment_intent) === null || _a === void 0 ? void 0 : _a.id;
+            order = new Order_1.default({
+                orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+                customer: {
+                    name: metadata.customerName,
+                    email: ((_b = session.customer_details) === null || _b === void 0 ? void 0 : _b.email) || metadata.customerEmail,
+                    phone: metadata.customerPhone,
+                },
+                items: orderItems,
+                fulfillment: {
+                    method: metadata.fulfillmentMethod,
+                    address: metadata.fulfillmentMethod === 'doorstep' ? {
+                        street: metadata.addressStreet,
+                        city: metadata.addressCity,
+                        zip: metadata.addressZip,
+                    } : undefined
+                },
+                payment: {
+                    stripeSessionId: sessionId,
+                    paymentIntentId: paymentIntentId || undefined, // undefined to avoid null index issues if index still exists
+                    amount: session.amount_total ? session.amount_total / 100 : 0,
+                    currency: session.currency,
+                    status: 'paid'
+                },
+                status: 'pending' // Ready for processing
+            });
+            yield order.save();
+        }
+        return SuccessHandler_1.SuccessHandler.handle(res, "Order verified", order, 200);
+    }
+    catch (error) {
+        console.error("Verify session error:", error);
+        // Check for duplicate key error specifically
+        if (error.code === 11000) {
+            // Retrieve the existing order and return it
+            const existingOrder = yield Order_1.default.findOne({ "payment.stripeSessionId": req.body.sessionId });
+            if (existingOrder) {
+                return SuccessHandler_1.SuccessHandler.handle(res, "Order verified (retrieved existing)", existingOrder, 200);
+            }
+        }
+        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(500, error.message), req, res);
+    }
+});
+exports.verifySession = verifySession;
 //# sourceMappingURL=paymentController.js.map

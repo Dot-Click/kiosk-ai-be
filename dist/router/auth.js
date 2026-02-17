@@ -45,5 +45,6 @@ router.route("/register").post((0, authValidator_1.validateAuth)("register"), au
 router.route("/login").post((0, authValidator_1.validateAuth)("login"), auth.login);
 // GET
 router.route("/logout").get(auth.logout);
+router.route("/get-session").get(auth.getSession);
 exports.default = router;
 //# sourceMappingURL=auth.js.map

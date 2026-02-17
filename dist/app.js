@@ -59,6 +59,7 @@ const product_1 = __importDefault(require("./router/product"));
 const admin_1 = __importDefault(require("./router/admin"));
 const stripeSettings_1 = __importDefault(require("./router/stripeSettings"));
 const payment_1 = __importDefault(require("./router/payment"));
+const auth_1 = __importDefault(require("./router/auth"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -98,7 +99,9 @@ app.use('/api/v1/upload/image/:code', imageCors_1.imageCorsMiddleware);
 app.use("/api/products", product_1.default);
 app.use("/api/admin", admin_1.default);
 app.use("/api/admin/stripe-settings", stripeSettings_1.default);
-app.use("/api", payment_1.default);
+app.use("/api/payment", payment_1.default);
+app.use("/api/auth", auth_1.default);
+app.use("/api/v1/auth", auth_1.default);
 // Health check
 app.get('/health', (req, res) => {
     res.json({
@@ -131,5 +134,22 @@ app.get('/', (req, res) => {
 });
 // Setup cleanup job every 6 hours
 setInterval(uploadController_1.cleanupOldFiles, 6 * 60 * 60 * 1000);
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('[Global Error]', err);
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Internal Server Error'
+    });
+});
+// Final 404 Catch-all for Debugging
+app.use((req, res) => {
+    console.log(`[404 Debug] ${req.method} ${req.originalUrl}`);
+    res.status(404).json({
+        success: false,
+        message: `API Route Not Found: ${req.method} ${req.originalUrl}`,
+        hint: "Check if you are using /api/v1/ prefix or just /api/"
+    });
+});
 exports.default = app;
 //# sourceMappingURL=app.js.map

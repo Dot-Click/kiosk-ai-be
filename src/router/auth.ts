@@ -11,5 +11,6 @@ router.route("/login").post(validateAuth("login"), auth.login);
 
 // GET
 router.route("/logout").get(auth.logout);
+router.route("/get-session").get(auth.getSession);
 
 export default router;

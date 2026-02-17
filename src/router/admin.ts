@@ -234,6 +234,6 @@ router.route("/orders").get(admin.getOrders);
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/orders/:id").get(admin.getOrderDetails);
+router.route("/orders/:id").get(admin.getOrderDetails).patch(admin.updateOrderStatus);
 
 export default router;

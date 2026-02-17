@@ -178,6 +178,20 @@ function connectDB() {
             db = client.db('kiosk-ai');
             console.log('✅ Native MongoDB driver connected successfully!');
             console.log('📊 Database:', db.databaseName);
+            // FIX: Drop legacy index that causes duplicate key errors
+            try {
+                const collection = db.collection('orders');
+                const indexes = yield collection.indexes();
+                const hasBadIndex = indexes.some(idx => idx.name === 'stripePaymentIntentId_1');
+                if (hasBadIndex) {
+                    console.log('🔧 Found legacy index "stripePaymentIntentId_1". Dropping it...');
+                    yield collection.dropIndex('stripePaymentIntentId_1');
+                    console.log('✅ Legacy index dropped successfully.');
+                }
+            }
+            catch (idxError) {
+                console.warn('⚠️  Failed to check/drop legacy index (non-fatal):', idxError);
+            }
             return db;
         }
         catch (error) {

@@ -23,6 +23,7 @@ import productRoutes from "./router/product";
 import adminRoutes from "./router/admin";
 import stripeSettingsRoutes from "./router/stripeSettings";
 import paymentRoutes from "./router/payment";
+import authRoutes from "./router/auth";
 
 dotenv.config();
 
@@ -71,12 +72,14 @@ app.use('/api/v1/upload/image/:code', imageCorsMiddleware);
 app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/stripe-settings", stripeSettingsRoutes);
-app.use("/api", paymentRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
@@ -85,8 +88,8 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Home route
 app.get('/', (req: Request, res: Response) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'Kiosk AI Backend API',
     timestamp: new Date().toISOString(),
     documentation: '/api-docs',
@@ -107,5 +110,24 @@ app.get('/', (req: Request, res: Response) => {
 
 // Setup cleanup job every 6 hours
 setInterval(cleanupOldFiles, 6 * 60 * 60 * 1000);
+
+// Global Error Handler
+app.use((err: any, req: Request, res: Response, next: any) => {
+  console.error('[Global Error]', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
+
+// Final 404 Catch-all for Debugging
+app.use((req: Request, res: Response) => {
+  console.log(`[404 Debug] ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    success: false,
+    message: `API Route Not Found: ${req.method} ${req.originalUrl}`,
+    hint: "Check if you are using /api/v1/ prefix or just /api/"
+  });
+});
 
 export default app;

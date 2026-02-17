@@ -30,7 +30,8 @@ const allowedOrigins = [
   'https://kiosk-ai.vercel.app',
   'http://localhost:4001',
   'http://localhost:5000',
-  
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
 ];
 
 export const corsOptions: CorsOptions = {
@@ -39,7 +40,7 @@ export const corsOptions: CorsOptions = {
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // Check if origin is allowed
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -51,7 +52,7 @@ export const corsOptions: CorsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
-    'Content-Type', 
+    'Content-Type',
     'Authorization',
     'X-Requested-With',
     'Accept',
