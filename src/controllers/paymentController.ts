@@ -31,34 +31,37 @@ export async function getStripeConfig(): Promise<StripePaymentConfig | null> {
   try {
     await ensureMongooseConnected();
     const settings = await StripeSettings.findOne();
-    if (
-      settings &&
-      settings.secretKey?.length > 20 &&
-      settings.publishableKey?.length > 20 &&
-      settings.secretKey.startsWith("sk_") &&
-      settings.publishableKey.startsWith("pk_")
-    ) {
+
+    // If settings exist in DB, they TAKE PRIORITY over .env
+    if (settings && (settings.publishableKey || settings.secretKey)) {
+      console.log(`[StripeConfig] Using configuration from DATABASE (Active: ${settings.isActive})`);
       return {
-        secretKey: settings.secretKey,
-        publishableKey: settings.publishableKey,
+        secretKey: settings.secretKey || "",
+        publishableKey: settings.publishableKey || "",
         currency: settings.currency || "usd",
         isActive: settings.isActive ?? false,
       };
     }
-  } catch {
-    // ignore DB errors, fall back to env
+  } catch (err) {
+    console.error("[StripeConfig] Error fetching from database:", err);
   }
+
+  // Fallback to Environment Variables ONLY if DB settings are missing
   const secret = process.env.STRIPE_SECRET_KEY;
   const publishable = process.env.STRIPE_PUBLISHABLE_KEY;
-  if (!secret || !publishable || !secret.startsWith("sk_") || !publishable.startsWith("pk_")) {
-    return null;
+
+  if (secret && publishable) {
+    console.log("[StripeConfig] Falling back to ENVIRONMENT variables");
+    return {
+      secretKey: secret,
+      publishableKey: publishable,
+      currency: (process.env.STRIPE_CURRENCY || "usd").toLowerCase(),
+      isActive: true, // Env keys are typically active if provided
+    };
   }
-  return {
-    secretKey: secret,
-    publishableKey: publishable,
-    currency: (process.env.STRIPE_CURRENCY || "usd").toLowerCase(),
-    isActive: true,
-  };
+
+  console.warn("[StripeConfig] No Stripe configuration found in Database or Environment");
+  return null;
 }
 
 export const getPublicStripeConfig = async (req: Request, res: Response) => {
@@ -174,17 +177,32 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
  * Verify Session & Create Order
  * Called by frontend on Success page to confirm payment and save order
  */
+/**
+ * Verify Session & Create Order
+ * Called by frontend on Success page to confirm payment and save order
+ */
 const verifySession = async (req: Request, res: Response) => {
+  const { sessionId } = req.body;
   try {
+    console.log(`[VerifySession] Starting verification for session: ${sessionId}`);
     await ensureMongooseConnected();
-    const { sessionId } = req.body;
 
     if (!sessionId) {
       return ErrorHandler.handleError(new ApiError(400, "Session ID required"), req, res);
     }
 
     const config = await getStripeConfig();
-    if (!config) throw new Error("Stripe not configured");
+    if (!config) {
+      console.error("[VerifySession] Stripe configuration missing during verification");
+      throw new Error("Stripe not configured");
+    }
+
+    // Check if order already exists BEFORE calling Stripe to save time/requests
+    let order = await Order.findOne({ "payment.stripeSessionId": sessionId });
+    if (order) {
+      console.log(`[VerifySession] Order already exists for session ${sessionId}: ${order.orderNumber}`);
+      return SuccessHandler.handle(res, "Order verified (already existed)", order, 200);
+    }
 
     const stripe = new Stripe(config.secretKey);
     // Expand payment_intent to get the ID
@@ -193,69 +211,77 @@ const verifySession = async (req: Request, res: Response) => {
     });
 
     if (session.payment_status !== "paid") {
+      console.warn(`[VerifySession] Session ${sessionId} status is ${session.payment_status}, not 'paid'`);
       return ErrorHandler.handleError(new ApiError(400, "Payment not verified"), req, res);
     }
 
-    // Check if order already exists
-    let order = await Order.findOne({ "payment.stripeSessionId": sessionId });
-
-    if (!order) {
-      // Create New Order
-      const metadata = session.metadata || {};
-
-      const lineItems = await stripe.checkout.sessions.listLineItems(sessionId);
-      const orderItems = lineItems.data.map(li => ({
-        productName: li.description,
-        quantity: li.quantity,
-        price: li.amount_total / 100, // convert back to standard unit
-      }));
-
-      const paymentIntentId = typeof session.payment_intent === 'string'
-        ? session.payment_intent
-        : (session.payment_intent as Stripe.PaymentIntent)?.id;
-
-      order = new Order({
-        orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
-        customer: {
-          name: metadata.customerName,
-          email: session.customer_details?.email || metadata.customerEmail,
-          phone: metadata.customerPhone,
-        },
-        items: orderItems,
-        fulfillment: {
-          method: metadata.fulfillmentMethod,
-          address: metadata.fulfillmentMethod === 'doorstep' ? {
-            street: metadata.addressStreet,
-            city: metadata.addressCity,
-            zip: metadata.addressZip,
-          } : undefined
-        },
-        payment: {
-          stripeSessionId: sessionId,
-          paymentIntentId: paymentIntentId || undefined, // undefined to avoid null index issues if index still exists
-          amount: session.amount_total ? session.amount_total / 100 : 0,
-          currency: session.currency,
-          status: 'paid'
-        },
-        status: 'pending' // Ready for processing
-      });
-
-      await order.save();
+    // Double check again just in case of a tight race condition
+    order = await Order.findOne({ "payment.stripeSessionId": sessionId });
+    if (order) {
+      return SuccessHandler.handle(res, "Order verified", order, 200);
     }
 
-    return SuccessHandler.handle(res, "Order verified", order, 200);
+    // Create New Order
+    const metadata = session.metadata || {};
+    const lineItems = await stripe.checkout.sessions.listLineItems(sessionId);
+    const orderItems = lineItems.data.map(li => ({
+      productName: li.description || "Unknown Product",
+      quantity: li.quantity || 1,
+      price: (li.price?.unit_amount ? li.price.unit_amount / 100 : (li.amount_total / (li.quantity || 1)) / 100),
+    }));
+
+    const paymentIntentId = typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : (session.payment_intent as Stripe.PaymentIntent)?.id;
+
+    // Improved order number generation
+    const randomStr = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${randomStr}`;
+
+    order = new Order({
+      orderNumber,
+      customer: {
+        name: metadata.customerName,
+        email: session.customer_details?.email || metadata.customerEmail,
+        phone: metadata.customerPhone,
+      },
+      items: orderItems,
+      fulfillment: {
+        method: metadata.fulfillmentMethod,
+        address: metadata.fulfillmentMethod === 'doorstep' ? {
+          street: metadata.addressStreet,
+          city: metadata.addressCity,
+          zip: metadata.addressZip,
+        } : undefined
+      },
+      payment: {
+        stripeSessionId: sessionId,
+        paymentIntentId: paymentIntentId || undefined,
+        amount: session.amount_total ? session.amount_total / 100 : 0,
+        currency: session.currency,
+        status: 'paid'
+      },
+      status: 'pending'
+    });
+
+    await order.save();
+    console.log(`[VerifySession] Created new order: ${orderNumber} for session: ${sessionId}`);
+
+    return SuccessHandler.handle(res, "Order verified and created", order, 201);
 
   } catch (error: any) {
-    console.error("Verify session error:", error);
-    // Check for duplicate key error specifically
+    console.error(`[VerifySession] Error verifying session ${sessionId}:`, error);
+
+    // Handle duplicate key error (race condition)
     if (error.code === 11000) {
-      // Retrieve the existing order and return it
-      const existingOrder = await Order.findOne({ "payment.stripeSessionId": req.body.sessionId });
+      console.log(`[VerifySession] Detected race condition for session ${sessionId}, retrieving existing order...`);
+      const existingOrder = await Order.findOne({ "payment.stripeSessionId": sessionId });
       if (existingOrder) {
-        return SuccessHandler.handle(res, "Order verified (retrieved existing)", existingOrder, 200);
+        return SuccessHandler.handle(res, "Order verified (recovered from race)", existingOrder, 200);
       }
     }
-    return ErrorHandler.handleError(new ApiError(500, error.message), req, res);
+
+    return ErrorHandler.handleError(new ApiError(500, error.message || "Failed to verify order"), req, res);
   }
 }
 

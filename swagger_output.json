@@ -81,9 +81,7 @@
   "paths": {
     "/health": {
       "get": {
-        "tags": ["Health"],
-        "summary": "Health check",
-        "description": "Service health and uptime (served at root /health, not under /api).",
+        "description": "",
         "responses": {
           "200": {
             "description": "OK"
@@ -135,10 +133,8 @@
         }
       }
     },
-    "/v1/qr/generate": {
+    "/api/v1/qr/generate": {
       "post": {
-        "tags": ["QR Code"],
-        "summary": "Generate QR code",
         "description": "",
         "parameters": [
           {
@@ -164,10 +160,8 @@
         }
       }
     },
-    "/v1/qr/validate/{code}": {
+    "/api/v1/qr/validate/{code}": {
       "get": {
-        "tags": ["QR Code"],
-        "summary": "Validate QR code",
         "description": "",
         "parameters": [
           {
@@ -184,10 +178,8 @@
         }
       }
     },
-    "/v1/qr/details/{code}": {
+    "/api/v1/qr/details/{code}": {
       "get": {
-        "tags": ["QR Code"],
-        "summary": "Get QR details",
         "description": "",
         "parameters": [
           {
@@ -210,10 +202,8 @@
         }
       }
     },
-    "/v1/upload/upload": {
+    "/api/v1/upload/upload": {
       "post": {
-        "tags": ["Upload"],
-        "summary": "Upload image",
         "description": "",
         "parameters": [
           {
@@ -242,10 +232,8 @@
         }
       }
     },
-    "/v1/upload/check/{code}": {
+    "/api/v1/upload/check/{code}": {
       "get": {
-        "tags": ["Upload"],
-        "summary": "Check upload status",
         "description": "",
         "parameters": [
           {
@@ -262,10 +250,8 @@
         }
       }
     },
-    "/v1/upload/image/{code}": {
+    "/api/v1/upload/image/{code}": {
       "get": {
-        "tags": ["Upload"],
-        "summary": "Get uploaded image",
         "description": "",
         "produces": [
           "error"
@@ -290,11 +276,9 @@
         }
       }
     },
-    "/products/create": {
+    "/api/products/create": {
       "post": {
-        "tags": ["Products"],
-        "summary": "Create product",
-        "description": "Create a new product (admin/internal).",
+        "description": "",
         "parameters": [
           {
             "name": "origin",
@@ -330,11 +314,9 @@
         }
       }
     },
-    "/products/all": {
+    "/api/products/all": {
       "get": {
-        "tags": ["Products"],
-        "summary": "Get all products",
-        "description": "Returns list of all products.",
+        "description": "",
         "parameters": [
           {
             "name": "origin",
@@ -349,10 +331,8 @@
         }
       }
     },
-    "/admin/login": {
+    "/api/admin/login": {
       "post": {
-        "tags": ["Admin - Auth"],
-        "summary": "Admin login",
         "description": "",
         "parameters": [
           {
@@ -383,10 +363,8 @@
         }
       }
     },
-    "/admin/dashboard/stats": {
+    "/api/admin/dashboard/stats": {
       "get": {
-        "tags": ["Admin - Dashboard"],
-        "summary": "Get dashboard statistics",
         "description": "",
         "parameters": [
           {
@@ -402,10 +380,8 @@
         }
       }
     },
-    "/admin/settings/profile": {
+    "/api/admin/settings/profile": {
       "put": {
-        "tags": ["Admin - Settings"],
-        "summary": "Update admin profile",
         "description": "",
         "parameters": [
           {
@@ -439,10 +415,8 @@
         }
       }
     },
-    "/admin/settings/password": {
+    "/api/admin/settings/password": {
       "put": {
-        "tags": ["Admin - Settings"],
-        "summary": "Change admin password",
         "description": "",
         "parameters": [
           {
@@ -473,10 +447,8 @@
         }
       }
     },
-    "/admin/settings/site": {
+    "/api/admin/settings/site": {
       "put": {
-        "tags": ["Admin - Settings"],
-        "summary": "Update site settings",
         "description": "",
         "parameters": [
           {
@@ -507,10 +479,8 @@
         }
       }
     },
-    "/admin/orders": {
+    "/api/admin/orders": {
       "get": {
-        "tags": ["Admin - Orders"],
-        "summary": "Get orders list",
         "description": "",
         "parameters": [
           {
@@ -527,6 +497,16 @@
             "name": "search",
             "in": "query",
             "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "string"
           }
         ],
         "responses": {
@@ -536,10 +516,8 @@
         }
       }
     },
-    "/admin/orders/{id}": {
+    "/api/admin/orders/{id}": {
       "get": {
-        "tags": ["Admin - Orders"],
-        "summary": "Get order details",
         "description": "",
         "parameters": [
           {
@@ -559,12 +537,43 @@
             "description": "OK"
           }
         }
+      },
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
-    "/admin/stripe-settings": {
+    "/api/admin/stripe-settings/": {
       "get": {
-        "tags": ["Admin - Stripe Settings"],
-        "summary": "Get Stripe settings",
         "description": "",
         "parameters": [
           {
@@ -580,8 +589,6 @@
         }
       },
       "put": {
-        "tags": ["Admin - Stripe Settings"],
-        "summary": "Update Stripe settings",
         "description": "",
         "parameters": [
           {
@@ -621,10 +628,8 @@
         }
       }
     },
-    "/admin/stripe-settings/test": {
+    "/api/admin/stripe-settings/test": {
       "post": {
-        "tags": ["Admin - Stripe Settings"],
-        "summary": "Test Stripe connection",
         "description": "",
         "parameters": [
           {
@@ -640,11 +645,9 @@
         }
       }
     },
-    "/stripe-config": {
+    "/api/payment/config": {
       "get": {
-        "tags": ["Payment"],
-        "summary": "Get public Stripe config",
-        "description": "Returns publishable key, currency, and active status for checkout (no auth required).",
+        "description": "",
         "parameters": [
           {
             "name": "origin",
@@ -659,11 +662,9 @@
         }
       }
     },
-    "/payment/create-payment-intent": {
+    "/api/payment/create-session": {
       "post": {
-        "tags": ["Payment"],
-        "summary": "Create Stripe Payment Intent",
-        "description": "Creates a Stripe Payment Intent for checkout. Returns clientSecret for Stripe Elements.",
+        "description": "",
         "parameters": [
           {
             "name": "origin",
@@ -676,17 +677,288 @@
             "schema": {
               "type": "object",
               "properties": {
-                "amountInCents": {
+                "items": {
                   "example": "any"
                 },
-                "currency": {
+                "customer": {
                   "example": "any"
                 },
-                "metadata": {
+                "fulfillment": {
                   "example": "any"
                 }
               }
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/payment/verify-session": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "sessionId": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/get-session": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/get-session": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
@@ -1052,6 +1324,23 @@
         }
       }
     },
+    "/get-session": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/dashboard/stats": {
       "get": {
         "description": "",
@@ -1159,6 +1448,16 @@
             "name": "search",
             "in": "query",
             "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "string"
           }
         ],
         "responses": {
@@ -1184,11 +1483,108 @@
             "description": ""
           }
         }
+      },
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
       }
     },
     "/test": {
       "post": {
         "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/config": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/create-session": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "example": "any"
+                },
+                "customer": {
+                  "example": "any"
+                },
+                "fulfillment": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/verify-session": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "sessionId": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""

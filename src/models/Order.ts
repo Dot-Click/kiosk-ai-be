@@ -64,7 +64,7 @@ const OrderSchema: Schema = new Schema(
             },
         },
         payment: {
-            stripeSessionId: { type: String, required: true },
+            stripeSessionId: { type: String, required: true, unique: true },
             paymentIntentId: { type: String },
             amount: { type: Number, required: true },
             currency: { type: String, default: "usd" },
