@@ -42,7 +42,7 @@ export const corsOptions: CorsOptions = {
     }
 
     // Check if origin is allowed
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
       console.log('❌ CORS blocked origin:', origin);

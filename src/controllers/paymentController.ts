@@ -114,17 +114,33 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     const stripe = new Stripe(config.secretKey);
     const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
 
-    const lineItems = items.map((item: any) => ({
-      price_data: {
-        currency: config.currency,
-        product_data: {
-          name: item.name,
-          images: item.image ? [item.image] : [],
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const backendUrl = `${protocol}://${host}`;
+
+    const lineItems = items.map((item: any) => {
+      let imageUrl = item.image;
+
+      if (imageUrl && imageUrl.startsWith('/api')) {
+        imageUrl = `${backendUrl}${imageUrl}`;
+      }
+
+      // Stripe only accepts valid absolute URLs for images. 
+      // Omit if it doesn't look like a valid URL or is a data URL.
+      const isValidUrl = imageUrl && imageUrl.startsWith('http') && !imageUrl.includes('data:image');
+
+      return {
+        price_data: {
+          currency: config.currency,
+          product_data: {
+            name: item.name,
+            images: isValidUrl ? [imageUrl] : [],
+          },
+          unit_amount: Math.round(item.price), // stored as cents
         },
-        unit_amount: Math.round(item.price), // stored as cents
-      },
-      quantity: item.quantity,
-    }));
+        quantity: item.quantity,
+      };
+    });
 
     // Add shipping if Doorstep
     if (fulfillment.method === "doorstep") {

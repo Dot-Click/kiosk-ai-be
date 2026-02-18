@@ -66,7 +66,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(
 ));
 
 // Routes
+app.use('/api/qr', qrRoutes);
 app.use('/api/v1/qr', qrRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/upload/image/:code', imageCorsMiddleware);
 app.use("/api/products", productRoutes);
