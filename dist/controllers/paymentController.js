@@ -94,7 +94,7 @@ exports.getPublicStripeConfig = getPublicStripeConfig;
  * Create Checkout Session (Hosted Page)
  */
 const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     try {
         const config = yield getStripeConfig();
         if (!config || !config.isActive) {
@@ -104,17 +104,29 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
         // items: [{ name, quantity, price (in cents), image? }]
         const stripe = new stripe_1.default(config.secretKey);
         const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
-        const lineItems = items.map((item) => ({
-            price_data: {
-                currency: config.currency,
-                product_data: {
-                    name: item.name,
-                    images: item.image ? [item.image] : [],
+        const host = req.get('host');
+        const protocol = req.protocol;
+        const backendUrl = `${protocol}://${host}`;
+        const lineItems = items.map((item) => {
+            let imageUrl = item.image;
+            if (imageUrl && imageUrl.startsWith('/api')) {
+                imageUrl = `${backendUrl}${imageUrl}`;
+            }
+            // Stripe only accepts valid absolute URLs for images. 
+            // Omit if it doesn't look like a valid URL or is a data URL.
+            const isValidUrl = imageUrl && imageUrl.startsWith('http') && !imageUrl.includes('data:image');
+            return {
+                price_data: {
+                    currency: config.currency,
+                    product_data: {
+                        name: item.name,
+                        images: isValidUrl ? [imageUrl] : [],
+                    },
+                    unit_amount: Math.round(item.price), // stored as cents
                 },
-                unit_amount: Math.round(item.price), // stored as cents
-            },
-            quantity: item.quantity,
-        }));
+                quantity: item.quantity,
+            };
+        });
         // Add shipping if Doorstep
         if (fulfillment.method === "doorstep") {
             lineItems.push({
@@ -142,6 +154,9 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 addressStreet: ((_a = fulfillment.address) === null || _a === void 0 ? void 0 : _a.street) || "",
                 addressCity: ((_b = fulfillment.address) === null || _b === void 0 ? void 0 : _b.city) || "",
                 addressZip: ((_c = fulfillment.address) === null || _c === void 0 ? void 0 : _c.zip) || "",
+                // Store customization info as JSON string for the first item (assuming single item for now)
+                customizationInfo: ((_d = items[0]) === null || _d === void 0 ? void 0 : _d.customization) ? JSON.stringify(items[0].customization) : "",
+                productImage: ((_e = items[0]) === null || _e === void 0 ? void 0 : _e.image) || ""
             },
         });
         return SuccessHandler_1.SuccessHandler.handle(res, "Checkout session created", { url: session.url, sessionId: session.id }, 200);
@@ -196,13 +211,18 @@ const verifySession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         // Create New Order
         const metadata = session.metadata || {};
+        const customizationInfo = metadata.customizationInfo ? JSON.parse(metadata.customizationInfo) : null;
+        const productImage = metadata.productImage || "";
         const lineItems = yield stripe.checkout.sessions.listLineItems(sessionId);
-        const orderItems = lineItems.data.map(li => {
+        const orderItems = lineItems.data.map((li, index) => {
             var _a;
             return ({
                 productName: li.description || "Unknown Product",
                 quantity: li.quantity || 1,
                 price: (((_a = li.price) === null || _a === void 0 ? void 0 : _a.unit_amount) ? li.price.unit_amount / 100 : (li.amount_total / (li.quantity || 1)) / 100),
+                // Only attach to the first item (design-related)
+                customization: index === 0 ? customizationInfo : undefined,
+                image: index === 0 ? productImage : undefined
             });
         });
         const paymentIntentId = typeof session.payment_intent === 'string'

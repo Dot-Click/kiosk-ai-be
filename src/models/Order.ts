@@ -1,11 +1,20 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface ICustomization {
+    color?: string;
+    colorName?: string;
+    designPosition?: [number, number, number];
+    designScale?: number;
+    originalDesign?: string;
+}
+
 export interface IOrderItem {
     productName: string;
     quantity: number;
     price: number;
     variant?: string;
     image?: string;
+    customization?: ICustomization;
 }
 
 export interface IOrder extends Document {
@@ -52,6 +61,13 @@ const OrderSchema: Schema = new Schema(
                 price: { type: Number, required: true },
                 variant: { type: String },
                 image: { type: String },
+                customization: {
+                    color: String,
+                    colorName: String,
+                    designPosition: [Number],
+                    designScale: Number,
+                    originalDesign: String,
+                },
             },
         ],
         fulfillment: {

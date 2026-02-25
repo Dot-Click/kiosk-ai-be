@@ -16,7 +16,7 @@ exports.corsOptions = {
             return callback(null, true);
         }
         // Check if origin is allowed
-        if (allowedOrigins.indexOf(origin) !== -1) {
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
             callback(null, true);
         }
         else {

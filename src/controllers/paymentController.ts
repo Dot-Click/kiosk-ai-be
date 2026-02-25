@@ -170,6 +170,9 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
         addressStreet: fulfillment.address?.street || "",
         addressCity: fulfillment.address?.city || "",
         addressZip: fulfillment.address?.zip || "",
+        // Store customization info as JSON string for the first item (assuming single item for now)
+        customizationInfo: items[0]?.customization ? JSON.stringify(items[0].customization) : "",
+        productImage: items[0]?.image || ""
       },
     });
 
@@ -239,11 +242,17 @@ const verifySession = async (req: Request, res: Response) => {
 
     // Create New Order
     const metadata = session.metadata || {};
+    const customizationInfo = metadata.customizationInfo ? JSON.parse(metadata.customizationInfo) : null;
+    const productImage = metadata.productImage || "";
+
     const lineItems = await stripe.checkout.sessions.listLineItems(sessionId);
-    const orderItems = lineItems.data.map(li => ({
+    const orderItems = lineItems.data.map((li, index) => ({
       productName: li.description || "Unknown Product",
       quantity: li.quantity || 1,
       price: (li.price?.unit_amount ? li.price.unit_amount / 100 : (li.amount_total / (li.quantity || 1)) / 100),
+      // Only attach to the first item (design-related)
+      customization: index === 0 ? customizationInfo : undefined,
+      image: index === 0 ? productImage : undefined
     }));
 
     const paymentIntentId = typeof session.payment_intent === 'string'

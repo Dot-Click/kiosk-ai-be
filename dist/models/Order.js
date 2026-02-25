@@ -48,6 +48,13 @@ const OrderSchema = new mongoose_1.Schema({
             price: { type: Number, required: true },
             variant: { type: String },
             image: { type: String },
+            customization: {
+                color: String,
+                colorName: String,
+                designPosition: [Number],
+                designScale: Number,
+                originalDesign: String,
+            },
         },
     ],
     fulfillment: {

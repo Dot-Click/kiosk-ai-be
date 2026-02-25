@@ -93,7 +93,9 @@ app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.de
     }
 }));
 // Routes
+app.use('/api/qr', qr_1.default);
 app.use('/api/v1/qr', qr_1.default);
+app.use('/api/upload', upload_1.default);
 app.use('/api/v1/upload', upload_1.default);
 app.use('/api/v1/upload/image/:code', imageCors_1.imageCorsMiddleware);
 app.use("/api/products", product_1.default);
