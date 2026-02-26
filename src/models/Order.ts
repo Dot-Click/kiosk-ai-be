@@ -41,7 +41,7 @@ export interface IOrder extends Document {
         currency: string;
         status: "pending" | "paid" | "failed";
     };
-    status: "pending" | "processing" | "completed" | "cancelled";
+    status: "pending" | "processing" | "shipped" | "delivered" | "completed" | "cancelled";
     createdAt: Date;
     updatedAt: Date;
 }
@@ -88,7 +88,7 @@ const OrderSchema: Schema = new Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "processing", "completed", "cancelled"],
+            enum: ["pending", "processing", "shipped", "delivered", "completed", "cancelled"],
             default: "pending",
         },
     },
