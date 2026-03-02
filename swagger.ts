@@ -595,7 +595,7 @@ const doc: SwaggerDoc = {
             },
             status: {
               type: "string",
-              enum: ["pending", "processing", "completed", "cancelled"],
+              enum: ["pending", "processing", "shipped", "delivered", "completed", "cancelled"],
               example: "pending",
             },
             createdAt: {
@@ -659,7 +659,7 @@ const doc: SwaggerDoc = {
         },
         status: {
           type: "string",
-          enum: ["pending", "processing", "completed", "cancelled"],
+          enum: ["pending", "processing", "shipped", "delivered", "completed", "cancelled"],
           example: "pending",
         },
         createdAt: {

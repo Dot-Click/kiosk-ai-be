@@ -499,7 +499,8 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       return ErrorHandler.handleError(new ApiError(400, "Status is required"), req, res);
     }
 
-    const validStatuses = ["pending", "processing", "completed", "cancelled"];
+    // these should match the enum defined in the Order model
+    const validStatuses = ["pending", "processing", "shipped", "delivered", "completed", "cancelled"];
     if (!validStatuses.includes(status)) {
       return ErrorHandler.handleError(new ApiError(400, "Invalid status"), req, res);
     }

@@ -362,7 +362,8 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
         if (!status) {
             return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Status is required"), req, res);
         }
-        const validStatuses = ["pending", "processing", "completed", "cancelled"];
+        // these should match the enum defined in the Order model
+        const validStatuses = ["pending", "processing", "shipped", "delivered", "completed", "cancelled"];
         if (!validStatuses.includes(status)) {
             return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Invalid status"), req, res);
         }
