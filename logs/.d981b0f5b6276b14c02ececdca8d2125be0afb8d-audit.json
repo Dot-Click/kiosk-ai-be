@@ -44,6 +44,16 @@
             "date": 1772433539890,
             "name": "C:\\office-work\\kiosk-ai-be\\logs\\combined-2026-03-02.log",
             "hash": "229a653782afcbc24b3d73a98bb6fa8293449aa582b61ab69a786a6b7494f245"
+        },
+        {
+            "date": 1772861161354,
+            "name": "C:\\office-work\\kiosk-ai-be\\logs\\combined-2026-03-07.log",
+            "hash": "22befdbb2f11a8c607c40ada570230ee81b95f2157ce56e9fad787b65d2e70e6"
+        },
+        {
+            "date": 1773024379615,
+            "name": "C:\\office-work\\kiosk-ai-be\\logs\\combined-2026-03-09.log",
+            "hash": "cab6c277ca6bcd264d6271766ffd95ff29a92428d7e12452c36e13b77d600af4"
         }
     ],
     "hashType": "sha256"

@@ -55,8 +55,8 @@ const stripeSettingsSchema = new mongoose_1.Schema({
     },
     currency: {
         type: String,
-        default: "usd",
-        enum: ["usd", "eur", "gbp", "cad", "aud"],
+        default: "inr",
+        enum: ["inr", "usd", "eur", "gbp", "cad", "aud"],
     },
     updatedBy: {
         type: String,

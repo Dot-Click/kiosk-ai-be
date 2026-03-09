@@ -1,7 +1,14 @@
 import express, { Router } from "express";
 import * as admin from "../controllers/adminController";
+import { requireAdminAuth } from "../middleware/requireAdminAuth";
 
 const router: Router = express.Router();
+
+// Public routes
+router.post("/login", admin.adminLogin);
+
+// Protected routes (everything after this line)
+router.use(requireAdminAuth);
 
 /**
  * @swagger
@@ -32,7 +39,7 @@ const router: Router = express.Router();
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/login").post(admin.adminLogin);
+
 
 /**
  * @swagger

@@ -65,7 +65,7 @@ const getStripeSettings = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 publishableKey: "",
                 secretKey: "",
                 isActive: false,
-                currency: "usd",
+                currency: "inr",
                 updatedBy: "admin",
             });
         }
@@ -115,7 +115,7 @@ const updateStripeSettings = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 secretKey: secretKey.trim(),
                 webhookSecret: (webhookSecret && typeof webhookSecret === "string") ? webhookSecret.trim() : "",
                 isActive: isActive === true,
-                currency: currency && ["usd", "eur", "gbp", "cad", "aud"].includes(currency) ? currency : "usd",
+                currency: currency && typeof currency === "string" ? currency.toLowerCase() : "inr",
                 updatedBy: "admin",
             });
         }
@@ -131,8 +131,8 @@ const updateStripeSettings = (req, res) => __awaiter(void 0, void 0, void 0, fun
             if (typeof isActive === "boolean") {
                 settings.isActive = isActive;
             }
-            if (currency && ["usd", "eur", "gbp", "cad", "aud"].includes(currency)) {
-                settings.currency = currency;
+            if (currency && typeof currency === "string") {
+                settings.currency = currency.toLowerCase();
             }
             settings.updatedBy = "admin";
             yield settings.save();

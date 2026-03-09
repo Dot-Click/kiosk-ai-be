@@ -38,7 +38,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const admin = __importStar(require("../controllers/adminController"));
+const requireAdminAuth_1 = require("../middleware/requireAdminAuth");
 const router = express_1.default.Router();
+// Public routes
+router.post("/login", admin.adminLogin);
+// Protected routes (everything after this line)
+router.use(requireAdminAuth_1.requireAdminAuth);
 /**
  * @swagger
  * /api/admin/login:
@@ -68,7 +73,6 @@ const router = express_1.default.Router();
  *         schema:
  *           $ref: '#/definitions/ErrorResponse'
  */
-router.route("/login").post(admin.adminLogin);
 /**
  * @swagger
  * /api/admin/dashboard/stats:

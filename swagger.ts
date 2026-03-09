@@ -708,7 +708,7 @@ const doc: SwaggerDoc = {
             },
             country: {
               type: "string",
-              example: "USA",
+              example: "India",
             },
           },
         },
@@ -748,7 +748,7 @@ const doc: SwaggerDoc = {
         },
         currency: {
           type: "string",
-          example: "USD",
+          example: "INR",
         },
         updatedAt: {
           type: "string",
@@ -785,7 +785,7 @@ const doc: SwaggerDoc = {
       currency: {
         type: "string",
         required: false,
-        example: "USD",
+        example: "INR",
         description: "Default currency",
       },
     },

@@ -54,7 +54,7 @@ export const getStripeSettings = async (req: Request, res: Response) => {
         publishableKey: "",
         secretKey: "",
         isActive: false,
-        currency: "usd",
+        currency: "inr",
         updatedBy: "admin",
       });
     }
@@ -63,8 +63,8 @@ export const getStripeSettings = async (req: Request, res: Response) => {
     const maskedSecretKey =
       settings.secretKey.length > 8
         ? `${settings.secretKey.substring(0, 4)}****${settings.secretKey.substring(
-            settings.secretKey.length - 4
-          )}`
+          settings.secretKey.length - 4
+        )}`
         : "****";
 
     return SuccessHandler.handle(
@@ -142,7 +142,7 @@ export const updateStripeSettings = async (req: Request, res: Response) => {
         secretKey: secretKey.trim(),
         webhookSecret: (webhookSecret && typeof webhookSecret === "string") ? webhookSecret.trim() : "",
         isActive: isActive === true,
-        currency: currency && ["usd", "eur", "gbp", "cad", "aud"].includes(currency) ? currency : "usd",
+        currency: currency && typeof currency === "string" ? currency.toLowerCase() : "inr",
         updatedBy: "admin",
       });
     } else {
@@ -157,8 +157,8 @@ export const updateStripeSettings = async (req: Request, res: Response) => {
       if (typeof isActive === "boolean") {
         settings.isActive = isActive;
       }
-      if (currency && ["usd", "eur", "gbp", "cad", "aud"].includes(currency)) {
-        settings.currency = currency;
+      if (currency && typeof currency === "string") {
+        settings.currency = currency.toLowerCase();
       }
       settings.updatedBy = "admin";
       await settings.save();
@@ -168,8 +168,8 @@ export const updateStripeSettings = async (req: Request, res: Response) => {
     const maskedSecretKey =
       settings.secretKey.length > 8
         ? `${settings.secretKey.substring(0, 4)}****${settings.secretKey.substring(
-            settings.secretKey.length - 4
-          )}`
+          settings.secretKey.length - 4
+        )}`
         : "****";
 
     return SuccessHandler.handle(

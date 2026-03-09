@@ -48,9 +48,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const dotenv_1 = __importDefault(require("dotenv"));
 const validator_1 = __importDefault(require("validator"));
-dotenv_1.default.config({ path: ".././src/config/config.env" });
 const userSchema = new mongoose_1.Schema({
     first_name: {
         type: String,

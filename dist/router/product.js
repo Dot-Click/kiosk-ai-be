@@ -90,5 +90,42 @@ router.route("/create").post(product.createProduct);
  *           $ref: '#/definitions/ErrorResponse'
  */
 router.route("/all").get(product.getAllProducts);
+/**
+ * @swagger
+ * /products/migrate:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Migrate/Seed store products
+ *     description: Ensures T-shirt and Mug products exist with correct codes.
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: Migration successful
+ */
+router.route("/migrate").get(product.migrateProducts);
+/**
+ * @swagger
+ * /products/{id}:
+ *   put:
+ *     tags:
+ *       - Products
+ *     summary: Update product
+ *     description: Update an existing product.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         type: string
+ *       - in: body
+ *         name: body
+ *         schema:
+ *           $ref: '#/definitions/ProductUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Product updated
+ */
+router.route("/:id").put(product.updateProduct).delete(product.deleteProduct);
 exports.default = router;
 //# sourceMappingURL=product.js.map

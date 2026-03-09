@@ -36,7 +36,7 @@ function getUserIdFromToken(req) {
             return null;
         }
         const decoded = jsonwebtoken_1.default.verify(token, secret);
-        return decoded.id;
+        return decoded.id || decoded._id || null;
     }
     catch (error) {
         return null;

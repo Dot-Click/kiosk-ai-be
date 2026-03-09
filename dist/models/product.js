@@ -5,9 +5,10 @@ const mongoose_1 = require("mongoose");
 //  ENUMS 
 var ProductCategory;
 (function (ProductCategory) {
-    ProductCategory["CUP"] = "CUP";
-    ProductCategory["TSHIRT"] = "TSHIRT";
-    ProductCategory["LAMP"] = "LAMP";
+    ProductCategory["CUP"] = "Cup";
+    ProductCategory["MUG"] = "Mug";
+    ProductCategory["TSHIRT"] = "T-shirt";
+    ProductCategory["LAMP"] = "Lamp";
 })(ProductCategory || (exports.ProductCategory = ProductCategory = {}));
 /*  SCHEMA */
 const ProductSchema = new mongoose_1.Schema({

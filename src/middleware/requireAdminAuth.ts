@@ -30,9 +30,10 @@ export function requireAdminAuth(
     }
     jwt.verify(token, secret);
     next();
-  } catch {
+  } catch (error: any) {
+    console.error(`[Auth] Unauthorized access attempt to ${req.originalUrl}:`, error.message);
     return ErrorHandler.handleError(
-      new ApiError(401, "Unauthorized"),
+      new ApiError(401, error.message || "Unauthorized"),
       req,
       res
     );

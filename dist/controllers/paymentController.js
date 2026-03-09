@@ -49,7 +49,7 @@ function getStripeConfig() {
                 return {
                     secretKey: settings.secretKey || "",
                     publishableKey: settings.publishableKey || "",
-                    currency: settings.currency || "usd",
+                    currency: settings.currency || "inr",
                     isActive: (_a = settings.isActive) !== null && _a !== void 0 ? _a : false,
                 };
             }
@@ -65,7 +65,7 @@ function getStripeConfig() {
             return {
                 secretKey: secret,
                 publishableKey: publishable,
-                currency: (process.env.STRIPE_CURRENCY || "usd").toLowerCase(),
+                currency: "inr",
                 isActive: true, // Env keys are typically active if provided
             };
         }
@@ -77,7 +77,7 @@ const getPublicStripeConfig = (req, res) => __awaiter(void 0, void 0, void 0, fu
     try {
         const config = yield getStripeConfig();
         if (!config) {
-            return SuccessHandler_1.SuccessHandler.handle(res, "Stripe not configured", { publishableKey: "", currency: "usd", isActive: false }, 200);
+            return SuccessHandler_1.SuccessHandler.handle(res, "Stripe not configured", { publishableKey: "", currency: "inr", isActive: false }, 200);
         }
         return SuccessHandler_1.SuccessHandler.handle(res, "Stripe config", {
             publishableKey: config.publishableKey,
@@ -103,6 +103,7 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
         const { items, customer, fulfillment } = req.body;
         // items: [{ name, quantity, price (in cents), image? }]
         const stripe = new stripe_1.default(config.secretKey);
+        console.log(`[StripeSession] Creating session with currency: ${config.currency}`);
         const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
         const host = req.get('host');
         const protocol = req.protocol;
@@ -133,9 +134,9 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 price_data: {
                     currency: config.currency,
                     product_data: {
-                        name: "Doorstep Delivery Status",
+                        name: "Doorstep Delivery Fee",
                     },
-                    unit_amount: 500, // $5.00
+                    unit_amount: 500, // ₹5.00
                 },
                 quantity: 1
             });

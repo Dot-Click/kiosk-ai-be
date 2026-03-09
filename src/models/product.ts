@@ -1,11 +1,12 @@
 import { Schema, model, Document } from "mongoose";
 
-  //  ENUMS 
+//  ENUMS 
 
 export enum ProductCategory {
-  CUP = "CUP",
-  TSHIRT = "TSHIRT",
-  LAMP = "LAMP",
+  CUP = "Cup",
+  MUG = "Mug",
+  TSHIRT = "T-shirt",
+  LAMP = "Lamp",
 }
 
 /* INTERFACE */

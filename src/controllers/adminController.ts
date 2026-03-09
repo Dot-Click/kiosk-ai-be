@@ -25,8 +25,8 @@ function getUserIdFromToken(req: Request): string | null {
       return null;
     }
 
-    const decoded = jwt.verify(token, secret) as { id: string };
-    return decoded.id;
+    const decoded = jwt.verify(token, secret) as { id?: string; _id?: string };
+    return decoded.id || decoded._id || null;
   } catch (error) {
     return null;
   }

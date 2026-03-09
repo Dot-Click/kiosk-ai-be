@@ -70,7 +70,7 @@ const OrderSchema = new mongoose_1.Schema({
         stripeSessionId: { type: String, required: true, unique: true },
         paymentIntentId: { type: String },
         amount: { type: Number, required: true },
-        currency: { type: String, default: "usd" },
+        currency: { type: String, default: "inr" },
         status: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
     },
     status: {

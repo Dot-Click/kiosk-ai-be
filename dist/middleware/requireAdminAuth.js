@@ -23,8 +23,9 @@ function requireAdminAuth(req, res, next) {
         jsonwebtoken_1.default.verify(token, secret);
         next();
     }
-    catch (_a) {
-        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(401, "Unauthorized"), req, res);
+    catch (error) {
+        console.error(`[Auth] Unauthorized access attempt to ${req.originalUrl}:`, error.message);
+        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(401, error.message || "Unauthorized"), req, res);
     }
 }
 //# sourceMappingURL=requireAdminAuth.js.map

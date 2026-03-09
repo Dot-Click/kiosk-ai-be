@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import validator from "validator";
 
-dotenv.config({ path: ".././src/config/config.env" });
+
 
 export interface IUser extends Document {
   first_name: string;

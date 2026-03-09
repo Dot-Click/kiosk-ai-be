@@ -38,7 +38,7 @@ export async function getStripeConfig(): Promise<StripePaymentConfig | null> {
       return {
         secretKey: settings.secretKey || "",
         publishableKey: settings.publishableKey || "",
-        currency: settings.currency || "usd",
+        currency: settings.currency || "inr",
         isActive: settings.isActive ?? false,
       };
     }
@@ -55,7 +55,7 @@ export async function getStripeConfig(): Promise<StripePaymentConfig | null> {
     return {
       secretKey: secret,
       publishableKey: publishable,
-      currency: (process.env.STRIPE_CURRENCY || "usd").toLowerCase(),
+      currency: "inr",
       isActive: true, // Env keys are typically active if provided
     };
   }
@@ -71,7 +71,7 @@ export const getPublicStripeConfig = async (req: Request, res: Response) => {
       return SuccessHandler.handle(
         res,
         "Stripe not configured",
-        { publishableKey: "", currency: "usd", isActive: false },
+        { publishableKey: "", currency: "inr", isActive: false },
         200
       );
     }
@@ -112,6 +112,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     // items: [{ name, quantity, price (in cents), image? }]
 
     const stripe = new Stripe(config.secretKey);
+    console.log(`[StripeSession] Creating session with currency: ${config.currency}`);
     const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
 
     const host = req.get('host');
@@ -148,9 +149,9 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
         price_data: {
           currency: config.currency,
           product_data: {
-            name: "Doorstep Delivery Status",
+            name: "Doorstep Delivery Fee",
           },
-          unit_amount: 500, // $5.00
+          unit_amount: 500, // ₹5.00
         },
         quantity: 1
       });

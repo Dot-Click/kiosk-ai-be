@@ -1,8 +1,10 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -24,8 +26,6 @@ import adminRoutes from "./router/admin";
 import stripeSettingsRoutes from "./router/stripeSettings";
 import paymentRoutes from "./router/payment";
 import authRoutes from "./router/auth";
-
-dotenv.config();
 
 const app: Application = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
