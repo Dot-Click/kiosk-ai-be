@@ -100,7 +100,7 @@ userSchema.methods.getJWTToken = function (): string {
     throw new Error("JWT_SECRET is not set in environment variables");
   }
   return jwt.sign({ _id: this._id }, secret, {
-    expiresIn: "7d", // Token expires in 7 days
+    expiresIn: "6h", // Token expires in 6 hours
   });
 };
 

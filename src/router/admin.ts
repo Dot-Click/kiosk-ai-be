@@ -1,11 +1,24 @@
 import express, { Router } from "express";
+import rateLimit from "express-rate-limit";
 import * as admin from "../controllers/adminController";
 import { requireAdminAuth } from "../middleware/requireAdminAuth";
 
 const router: Router = express.Router();
 
+// Rate limiting for login route to prevent brute-force attacks
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 requests per `window` (here, per 15 minutes)
+    message: {
+        success: false,
+        message: "Too many login attempts from this IP, please try again after 15 minutes."
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
 // Public routes
-router.post("/login", admin.adminLogin);
+router.post("/login", loginLimiter, admin.adminLogin);
 
 // Protected routes (everything after this line)
 router.use(requireAdminAuth);
