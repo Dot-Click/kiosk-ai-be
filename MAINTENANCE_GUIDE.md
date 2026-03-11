@@ -132,6 +132,16 @@ db.stripesettings.find().pretty()
 ### Default Admin Account
 
 **Email:** `admin12@gmail.com`  
+
+### Prompt-to-Image AI Integration
+
+- **Requirement:** an OpenAI API key must be provided in the environment as `OPENAI_API_KEY`.
+- **Usage:** the backend exposes `POST /api/ai/generate` which accepts a JSON body
+  with `prompt`, optional `style`, `additionalStyle`, and `count` fields.  The
+  route proxies the request to the OpenAI images endpoint and returns an array
+  of generated image URLs.
+- **Security:** never commit the key to source control; store it in a secret
+  manager or environment variable on the deployment platform.
 **Password:** `admin123`
 
 ### Admin Creation

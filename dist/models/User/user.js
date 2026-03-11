@@ -124,7 +124,7 @@ userSchema.methods.getJWTToken = function () {
         throw new Error("JWT_SECRET is not set in environment variables");
     }
     return jsonwebtoken_1.default.sign({ _id: this._id }, secret, {
-        expiresIn: "7d", // Token expires in 7 days
+        expiresIn: "6h", // Token expires in 6 hours
     });
 };
 // Compare password

@@ -37,11 +37,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const admin = __importStar(require("../controllers/adminController"));
 const requireAdminAuth_1 = require("../middleware/requireAdminAuth");
 const router = express_1.default.Router();
+// Rate limiting for login route to prevent brute-force attacks
+const loginLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 requests per `window` (here, per 15 minutes)
+    message: {
+        success: false,
+        message: "Too many login attempts from this IP, please try again after 15 minutes."
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 // Public routes
-router.post("/login", admin.adminLogin);
+router.post("/login", loginLimiter, admin.adminLogin);
 // Protected routes (everything after this line)
 router.use(requireAdminAuth_1.requireAdminAuth);
 /**

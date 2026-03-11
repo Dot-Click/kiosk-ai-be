@@ -54,6 +54,7 @@ const doc: SwaggerDoc = {
     { name: "Admin - Settings", description: "Profile, password, and site settings" },
     { name: "Admin - Stripe Settings", description: "Stripe keys and test connection" },
     { name: "Auth", description: "Authentication endpoints (legacy)" },
+    { name: "AI", description: "Prompt-to-image generation endpoints" },
   ],
   definitions: {
     QRGenerateRequest: {
@@ -190,6 +191,36 @@ const doc: SwaggerDoc = {
           example: "2024-01-15T10:30:00.000Z",
         },
       },
+    AIGenerateRequest: {
+      prompt: {
+        type: "string",
+        required: true,
+        description: "Text description for the image generation",
+        example: "A cute puppy playing in a field",
+      },
+      style: {
+        type: "string",
+        required: false,
+        description: "Chosen AI style (e.g. caricature, anime)",
+      },
+      additionalStyle: {
+        type: "string",
+        required: false,
+        description: "Optional filter/secondary style identifier",
+      },
+      count: {
+        type: "integer",
+        required: false,
+        example: 4,
+      },
+    },
+    AIGenerateResponse: {
+      success: { type: "boolean", example: true },
+      images: {
+        type: "array",
+        items: { type: "string", example: "https://..." },
+      },
+    },
     },
     CheckUploadResponse: {
       success: {
