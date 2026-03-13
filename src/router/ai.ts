@@ -40,8 +40,12 @@ router.post('/generate', async (req, res) => {
 
   // Build the final prompt text for OpenAI
   let finalPrompt = prompt.trim();
-  if (style) finalPrompt += ` in ${style} style`;
-  if (additionalStyle) finalPrompt += `, ${additionalStyle}`;
+  if (style || additionalStyle) {
+    let stylePart = '';
+    if (style) stylePart += `${style} style`;
+    if (additionalStyle) stylePart += (stylePart ? ` with ${additionalStyle}` : additionalStyle);
+    finalPrompt = `Create a ${stylePart} image of ${finalPrompt}`;
+  }
 
   try {
     console.log('[AI ROUTER] sending request', { finalPrompt, count, size: '1024x1024', model: 'gpt-image-1' });
@@ -51,7 +55,7 @@ router.post('/generate', async (req, res) => {
         prompt: finalPrompt,
         n: count,
         size: '1024x1024',
-        model: 'gpt-image-1', // use the newer image model
+        model: 'dall-e-2', // use DALL-E 2 for multiple images
       },
       {
         headers: {
@@ -62,14 +66,31 @@ router.post('/generate', async (req, res) => {
     );
 
     const data = response.data?.data || [];
-    const images: string[] = data.map((item: any) => item.url as string).filter(Boolean);
 
+    // OpenAI may return URLs or base64 blobs depending on configuration.  When
+    // using the new `gpt-image-1` model the payload is usually
+    // `{ b64_json: "..." }` rather than `{ url: "https://..." }`.
+    // Our old code assumed `url` and therefore returned an empty array which
+    // resulted in a tiny 28‑byte response and no images on the frontend.
+    const images: string[] = data
+      .map((item: any) => {
+        if (item.url) return item.url as string;
+        if (item.b64_json) return `data:image/png;base64,${item.b64_json}`;
+        return undefined;
+      })
+      .filter(Boolean) as string[];
+
+    if (images.length === 0) {
+      console.warn('[AI ROUTER] no images extracted from OpenAI response', response.data);
+    }
+
+    console.log('[AI ROUTER] generated', images.length, 'images');
     res.json({ success: true, images });
   } catch (error: any) {
     // print detailed information for debugging
     if (error.response) {
       console.error('[AI GENERATION ERROR] status:', error.response.status, 'data:', error.response.data);
-      // special-case 403/model problems
+      // special-case a few known error conditions
       if (error.response.status === 403 && error.response.data?.error?.code === 'model_not_found') {
         console.error('Possible invalid or unauthorized model - check your OpenAI project settings or use gpt-image-1.');
         // gracefully degrade by returning some dummy/placeholder images so the
@@ -78,6 +99,36 @@ router.post('/generate', async (req, res) => {
         const placeholders = Array(count)
           .fill('https://via.placeholder.com/1024x1024.png?text=Placeholder');
         return res.json({ success: true, images: placeholders });
+      }
+
+      // catch moderation-related blocks and give user-friendly feedback
+      if (error.response.status === 400 && error.response.data?.error?.code === 'moderation_blocked') {
+        console.warn('[AI GENERATION] prompt blocked by moderation:', finalPrompt);
+        return res.status(400).json({
+          success: false,
+          message: 'Prompt violated content policy and was blocked by the moderation system. Please try a different description without copyrighted or unsafe terms.',
+          detail: error.response.data?.error?.message || 'moderation_blocked',
+        });
+      }
+
+      // handle rate limit errors
+      if (error.response.status === 429 && error.response.data?.error?.code === 'rate_limit_exceeded') {
+        console.warn('[AI GENERATION] rate limit exceeded:', error.response.data);
+        return res.status(429).json({
+          success: false,
+          message: 'Rate limit exceeded. Please wait a moment before generating more images.',
+          detail: error.response.data?.error?.message || 'rate_limit_exceeded',
+        });
+      }
+
+      // handle file too large or other payload errors
+      if (error.response.status === 413) {
+        console.warn('[AI GENERATION] request too large:', error.response.data);
+        return res.status(413).json({
+          success: false,
+          message: 'Request payload too large. Please reduce the number of images or simplify your prompt.',
+          detail: error.response.data?.error?.message || 'payload_too_large',
+        });
       }
     } else {
       console.error('[AI GENERATION ERROR]', error.message);
