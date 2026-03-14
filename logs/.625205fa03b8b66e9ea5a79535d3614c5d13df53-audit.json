@@ -74,6 +74,11 @@
             "date": 1773369276145,
             "name": "C:\\office-work\\kiosk-ai-be\\logs\\error-2026-03-13.log",
             "hash": "fb5f355573c0fd495560e406c12e0004c1d50babfce4661823086c477e478eef"
+        },
+        {
+            "date": 1773471297948,
+            "name": "C:\\office-work\\kiosk-ai-be\\logs\\error-2026-03-14.log",
+            "hash": "429b7dfbba7abd5cca5634b2f72a45a7a8ae9627c181d6f6ca4244f7f1664efc"
         }
     ],
     "hashType": "sha256"
