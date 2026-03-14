@@ -15,8 +15,9 @@ exports.corsOptions = {
         if (!origin) {
             return callback(null, true);
         }
+        const trimmedOrigin = origin.replace(/\/$/, ''); // Remove trailing slash
         // Check if origin is allowed
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+        if (allowedOrigins.indexOf(trimmedOrigin) !== -1 || trimmedOrigin.endsWith('.vercel.app')) {
             callback(null, true);
         }
         else {

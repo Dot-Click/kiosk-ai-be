@@ -66,7 +66,6 @@ const app = (0, express_1.default)();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 // Middleware
 app.use((0, cors_1.default)(cors_2.corsOptions));
-app.options('*', (0, cors_1.default)(cors_2.corsOptions));
 app.use((0, helmet_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
