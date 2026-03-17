@@ -6,11 +6,6 @@
     "auditLog": "C:\\office-work\\kiosk-ai-be\\logs\\.d981b0f5b6276b14c02ececdca8d2125be0afb8d-audit.json",
     "files": [
         {
-            "date": 1771052225781,
-            "name": "C:\\office-work\\kiosk-ai-be\\logs\\combined-2026-02-14.log",
-            "hash": "52709afd1972f780462e59c855d4de67c2493e794003f009e701fb1366be7008"
-        },
-        {
             "date": 1771231660681,
             "name": "C:\\office-work\\kiosk-ai-be\\logs\\combined-2026-02-16.log",
             "hash": "518deeab846705b15e6690e62422a837bd04a8798cf399cd20b21816c1196c28"
@@ -79,6 +74,11 @@
             "date": 1773637945317,
             "name": "C:\\office-work\\kiosk-ai-be\\logs\\combined-2026-03-16.log",
             "hash": "6354e1183431af8ef086aa49fe4bfad2c271197d3c3490b87fcac4c5df793ec9"
+        },
+        {
+            "date": 1773715616605,
+            "name": "C:\\office-work\\kiosk-ai-be\\logs\\combined-2026-03-17.log",
+            "hash": "94da8967d6b5f3b0edcf20af45bfbe75204c94a269184423bfadec882eca8027"
         }
     ],
     "hashType": "sha256"

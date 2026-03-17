@@ -67,8 +67,8 @@ const PORT = parseInt(process.env.PORT || '5000', 10);
 // Middleware
 app.use((0, cors_1.default)(cors_2.corsOptions));
 app.use((0, helmet_1.default)());
-app.use(express_1.default.json({ limit: '10mb' }));
-app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '50mb' }));
 app.use((0, morgan_1.default)('combined'));
 // Connect to database (async, but don't block server startup)
 (0, db_1.connectDB)().catch((err) => {

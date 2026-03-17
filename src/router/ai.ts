@@ -19,11 +19,12 @@ if (OPENAI_API_KEY) {
  * Body: { prompt: string, style?: string, count?: number, additionalStyle?: string }
  */
 router.post('/generate', async (req, res) => {
-  const { prompt, style, count = 4, additionalStyle } = req.body as {
+  const { prompt, style, count = 4, additionalStyle, image } = req.body as {
     prompt?: string;
     style?: string;
     count?: number;
     additionalStyle?: string;
+    image?: string;
   };
 
   if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -36,9 +37,49 @@ router.post('/generate', async (req, res) => {
   }
 
   // 1. Updated the prompt text to reflect the supported resolution (1536x1024)
+  // Added precautions to prevent unwanted alterations to face, gender, etc.
   let finalPrompt = prompt.trim();
+  
+  if (image) {
+    console.log('[AI ROUTER] image provided, analyzing with GPT-4o vision to merge with prompt...');
+    try {
+      const gptResponse = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: `You are an expert image generation prompt engineer. I am providing a reference image. First, identify and lock in the core subject's exact gender, race, approximate age, and essential facial features. CRITICAL: You MUST preserve the exact gender of the subject. If the image shows a man, your prompt MUST explicitly describe a man. If it shows a woman, describe a woman. Do NOT change the subject's gender, race, or core identity under ANY circumstances unless the user explicitly asks to change them.
+Now, apply the following user edits: "${finalPrompt}".
+Return ONLY the final, highly detailed DALL-E prompt that recreates this exact same person (matching their original gender and features) with the user's modifications applied. Do not output conversational text.` },
+                { type: 'image_url', image_url: { url: image } }
+              ]
+            }
+          ],
+          max_tokens: 400,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (gptResponse.data?.choices?.[0]?.message?.content) {
+        finalPrompt = gptResponse.data.choices[0].message.content.trim();
+        console.log('[AI ROUTER] Vision derived prompt:', finalPrompt);
+      }
+    } catch (visionError: any) {
+      console.error('[AI ROUTER] Vision analysis failed:', visionError.response?.data || visionError.message);
+      // Fallback: just use standard prompt if vision fails
+    }
+  }
+
   finalPrompt +=
-    ' | IMPORTANT: Generate an exact 16:9 aspect ratio image (1536x1024), with the main subject and all text/content fully visible from left to right, no cropping, no borders, no empty space, fill the frame horizontally, and follow the user description exactly.';
+    ' | IMPORTANT: Generate an exact 16:9 aspect ratio image (1536x1024), with the main subject and all text/content fully visible from left to right, no cropping, no borders, no empty space, fill the frame horizontally. CRITICAL PRECAUTION: Strictly follow the user description exactly. Do NOT alter or change the subject\'s face, gender, race, or other core identifying characteristics unless explicitly requested in the prompt. Do not add random characters or modify the core subject details without instruction.';
   
   if (style || additionalStyle) {
     let stylePart = '';
