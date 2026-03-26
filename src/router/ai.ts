@@ -51,9 +51,23 @@ router.post('/generate', async (req, res) => {
             {
               role: 'user',
               content: [
-                { type: 'text', text: `You are an expert image generation prompt engineer. I am providing a reference image. First, identify and lock in the core subject's exact gender, race, approximate age, and essential facial features. CRITICAL: You MUST preserve the exact gender of the subject. If the image shows a man, your prompt MUST explicitly describe a man. If it shows a woman, describe a woman. Do NOT change the subject's gender, race, or core identity under ANY circumstances unless the user explicitly asks to change them.
-Now, apply the following user edits: "${finalPrompt}".
-Return ONLY the final, highly detailed DALL-E prompt that recreates this exact same person (matching their original gender and features) with the user's modifications applied. Do not output conversational text.` },
+                { type: 'text', text: `You are an expert image generation prompt engineer. I am providing a reference image for an image-to-image modification task.
+
+FIRST: Analyze the reference image and identify the exact following characteristics of the MAIN SUBJECT:
+- Gender: (e.g., Man, Woman, Boy, Girl)
+- Race/Ethnicity: (e.g., Caucasian, Asian, Black, Hispanic, Middle Eastern, etc.)
+- Approximate Age: (e.g., In their 20s, elderly, child, etc.)
+- Hair: (Color, style, length)
+- Facial Features: (Beard, glasses, eye color, distinctive marks)
+
+CRITICAL RULE: You MUST lock in these characteristics. If the user asks to "change background" or "change clothes", the subject's Gender, Race, and Identity MUST remain IDENTICAL. Do NOT let the AI assume a different gender.
+
+SECOND: Apply the user's requested edits: "${finalPrompt}".
+
+THIRD: Return ONLY a highly detailed DALL-E prompt that describes the SAME PERSON from the image (using the characteristics identified above) with the user's modifications applied. 
+
+The prompt should start with: "A [GENDER] [RACE] [AGE] with [HAIR]..." to ensure DALL-E follows instructions.
+Return ONLY the prompt. No conversational text.` },
                 { type: 'image_url', image_url: { url: image } }
               ]
             }
