@@ -20,6 +20,20 @@ const Order_1 = __importDefault(require("../models/Order"));
 const SuccessHandler_1 = require("../utils/SuccessHandler");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 const mongoose_1 = __importDefault(require("mongoose"));
+const toRemoteUrl = (url, backendUrl) => {
+    if (!url)
+        return "";
+    if (url.startsWith("blob:") || url.startsWith("data:"))
+        return "";
+    if (url.startsWith("/api") || url.startsWith("/")) {
+        if (!backendUrl)
+            return "";
+        return `${backendUrl}${url}`;
+    }
+    if (url.startsWith("http://") || url.startsWith("https://"))
+        return url;
+    return "";
+};
 function ensureMongooseConnected() {
     return __awaiter(this, void 0, void 0, function* () {
         if (mongoose_1.default.connection.readyState === 1)
@@ -102,6 +116,19 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
         }
         const { items, customer, fulfillment } = req.body;
         // items: [{ name, quantity, price (in cents), image? }]
+        if (!Array.isArray(items) || items.length === 0) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "No checkout items provided"), req, res);
+        }
+        const invalidItem = items.find((item) => !item.name || !item.quantity || Number(item.quantity) <= 0 || !item.price || Number(item.price) <= 0);
+        if (invalidItem) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Invalid item in checkout details"), req, res);
+        }
+        if (!(customer === null || customer === void 0 ? void 0 : customer.name) || !(customer === null || customer === void 0 ? void 0 : customer.phone)) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Customer name and phone are required"), req, res);
+        }
+        if (!(fulfillment === null || fulfillment === void 0 ? void 0 : fulfillment.method)) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Delivery method is required"), req, res);
+        }
         const stripe = new stripe_1.default(config.secretKey);
         console.log(`[StripeSession] Creating session with currency: ${config.currency}`);
         const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
@@ -109,13 +136,13 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
         const protocol = req.protocol;
         const backendUrl = `${protocol}://${host}`;
         const lineItems = items.map((item) => {
-            let imageUrl = item.image;
-            if (imageUrl && imageUrl.startsWith('/api')) {
-                imageUrl = `${backendUrl}${imageUrl}`;
-            }
-            // Stripe only accepts valid absolute URLs for images. 
-            // Omit if it doesn't look like a valid URL or is a data URL.
-            const isValidUrl = imageUrl && imageUrl.startsWith('http') && !imageUrl.includes('data:image');
+            var _a;
+            const imageUrl = toRemoteUrl(item.image, backendUrl);
+            // Stripe only accepts valid absolute URLs for images.
+            const isValidUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+            const originalDesignUrl = toRemoteUrl((_a = item.customization) === null || _a === void 0 ? void 0 : _a.originalDesign, backendUrl);
+            const safeCustomization = item.customization ? Object.assign(Object.assign({}, item.customization), { originalDesign: originalDesignUrl || undefined }) : undefined;
+            const designImageUrl = originalDesignUrl || imageUrl;
             return {
                 price_data: {
                     currency: config.currency,
@@ -126,6 +153,11 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
                     unit_amount: Math.round(item.price), // stored as cents
                 },
                 quantity: item.quantity,
+                metadata: {
+                    customization: safeCustomization ? JSON.stringify(safeCustomization).slice(0, 480) : "",
+                    designImage: designImageUrl || "",
+                    productImage: imageUrl || "",
+                },
             };
         });
         // Add shipping if Doorstep
@@ -135,12 +167,21 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
                     currency: config.currency,
                     product_data: {
                         name: "Doorstep Delivery Fee",
+                        images: [],
                     },
                     unit_amount: 500, // ₹5.00
                 },
-                quantity: 1
+                quantity: 1,
+                metadata: {
+                    customization: "",
+                    designImage: "",
+                    productImage: ""
+                }
             });
         }
+        // Stripe metadata values cannot exceed 500 characters each.
+        const customizationInfo = ((_a = items[0]) === null || _a === void 0 ? void 0 : _a.customization) ? JSON.stringify(items[0].customization) : "";
+        const safeCustomizationInfo = customizationInfo.length > 480 ? customizationInfo.slice(0, 480) : customizationInfo;
         const session = yield stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: lineItems,
@@ -152,12 +193,11 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 customerName: customer.name,
                 customerPhone: customer.phone,
                 fulfillmentMethod: fulfillment.method,
-                addressStreet: ((_a = fulfillment.address) === null || _a === void 0 ? void 0 : _a.street) || "",
-                addressCity: ((_b = fulfillment.address) === null || _b === void 0 ? void 0 : _b.city) || "",
-                addressZip: ((_c = fulfillment.address) === null || _c === void 0 ? void 0 : _c.zip) || "",
-                // Store customization info as JSON string for the first item (assuming single item for now)
-                customizationInfo: ((_d = items[0]) === null || _d === void 0 ? void 0 : _d.customization) ? JSON.stringify(items[0].customization) : "",
-                productImage: ((_e = items[0]) === null || _e === void 0 ? void 0 : _e.image) || ""
+                addressStreet: ((_b = fulfillment.address) === null || _b === void 0 ? void 0 : _b.street) || "",
+                addressCity: ((_c = fulfillment.address) === null || _c === void 0 ? void 0 : _c.city) || "",
+                addressZip: ((_d = fulfillment.address) === null || _d === void 0 ? void 0 : _d.zip) || "",
+                customizationInfo: safeCustomizationInfo,
+                productImage: toRemoteUrl((_e = items[0]) === null || _e === void 0 ? void 0 : _e.image) || ""
             },
         });
         return SuccessHandler_1.SuccessHandler.handle(res, "Checkout session created", { url: session.url, sessionId: session.id }, 200);
@@ -212,8 +252,10 @@ const verifySession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         // Create New Order
         const metadata = session.metadata || {};
+        const backendOrigin = `${req.protocol}://${req.get('host')}`;
         const customizationInfo = metadata.customizationInfo ? JSON.parse(metadata.customizationInfo) : null;
-        const productImage = metadata.productImage || "";
+        const normalizedCustomization = customizationInfo ? Object.assign(Object.assign({}, customizationInfo), { originalDesign: toRemoteUrl(customizationInfo.originalDesign, backendOrigin) || undefined }) : null;
+        const productImage = toRemoteUrl(metadata.productImage, backendOrigin) || "";
         const lineItems = yield stripe.checkout.sessions.listLineItems(sessionId);
         const orderItems = lineItems.data.map((li, index) => {
             var _a;
@@ -222,7 +264,7 @@ const verifySession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 quantity: li.quantity || 1,
                 price: (((_a = li.price) === null || _a === void 0 ? void 0 : _a.unit_amount) ? li.price.unit_amount / 100 : (li.amount_total / (li.quantity || 1)) / 100),
                 // Only attach to the first item (design-related)
-                customization: index === 0 ? customizationInfo : undefined,
+                customization: index === 0 ? normalizedCustomization : undefined,
                 image: index === 0 ? productImage : undefined
             });
         });

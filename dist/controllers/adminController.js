@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateOrderStatus = exports.getOrderDetails = exports.getOrders = exports.updateSiteSettings = exports.changePassword = exports.updateProfile = exports.getDashboardStats = exports.adminLogin = void 0;
+exports.updateOrderStatus = exports.trackOrder = exports.getOrderDetails = exports.getOrders = exports.updateSiteSettings = exports.changePassword = exports.updateProfile = exports.getDashboardStats = exports.adminLogin = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_1 = __importDefault(require("../models/User/user"));
 const Order_1 = __importDefault(require("../models/Order"));
@@ -350,6 +350,47 @@ const getOrderDetails = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getOrderDetails = getOrderDetails;
+// Public Order Tracking (by order number)
+const trackOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e, _f;
+    try {
+        yield ensureMongooseConnected();
+        let orderNumber = String(req.params.orderNumber || req.query.orderNumber || "").trim();
+        if (!orderNumber) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(400, "Order number is required"), req, res);
+        }
+        let order = yield Order_1.default.findOne({ orderNumber });
+        if (!order && mongoose_1.default.Types.ObjectId.isValid(orderNumber)) {
+            try {
+                order = yield Order_1.default.findById(orderNumber);
+            }
+            catch (err) {
+                console.error("ObjectId find error in trackOrder:", err);
+            }
+        }
+        if (!order) {
+            return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(404, "Order not found"), req, res);
+        }
+        const responseData = {
+            orderNumber: order.orderNumber,
+            status: order.status,
+            paymentStatus: (_b = (_a = order.payment) === null || _a === void 0 ? void 0 : _a.status) !== null && _b !== void 0 ? _b : "pending",
+            amount: (_d = (_c = order.payment) === null || _c === void 0 ? void 0 : _c.amount) !== null && _d !== void 0 ? _d : 0,
+            currency: (_f = (_e = order.payment) === null || _e === void 0 ? void 0 : _e.currency) !== null && _f !== void 0 ? _f : "inr",
+            customer: order.customer,
+            items: order.items,
+            fulfillment: order.fulfillment,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+        };
+        return SuccessHandler_1.SuccessHandler.handle(res, "Order status retrieved", responseData, 200);
+    }
+    catch (error) {
+        console.error("Track order error:", error);
+        return ErrorHandler_1.ErrorHandler.handleError(new ErrorHandler_1.ApiError(500, error.message || "Internal server error"), req, res);
+    }
+});
+exports.trackOrder = trackOrder;
 // Update Order Status
 const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

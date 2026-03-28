@@ -13,6 +13,17 @@ export interface StripePaymentConfig {
   isActive: boolean;
 }
 
+const toRemoteUrl = (url?: string | null, backendUrl?: string) => {
+  if (!url) return "";
+  if (url.startsWith("blob:") || url.startsWith("data:")) return "";
+  if (url.startsWith("/api") || url.startsWith("/")) {
+    if (!backendUrl) return "";
+    return `${backendUrl}${url}`;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return "";
+};
+
 async function ensureMongooseConnected() {
   if (mongoose.connection.readyState === 1) return;
   if (mongoose.connection.readyState === 2) {
@@ -111,6 +122,23 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     const { items, customer, fulfillment } = req.body;
     // items: [{ name, quantity, price (in cents), image? }]
 
+    if (!Array.isArray(items) || items.length === 0) {
+      return ErrorHandler.handleError(new ApiError(400, "No checkout items provided"), req, res);
+    }
+
+    const invalidItem = items.find((item: any) => !item.name || !item.quantity || Number(item.quantity) <= 0 || !item.price || Number(item.price) <= 0);
+    if (invalidItem) {
+      return ErrorHandler.handleError(new ApiError(400, "Invalid item in checkout details"), req, res);
+    }
+
+    if (!customer?.name || !customer?.phone) {
+      return ErrorHandler.handleError(new ApiError(400, "Customer name and phone are required"), req, res);
+    }
+
+    if (!fulfillment?.method) {
+      return ErrorHandler.handleError(new ApiError(400, "Delivery method is required"), req, res);
+    }
+
     const stripe = new Stripe(config.secretKey);
     console.log(`[StripeSession] Creating session with currency: ${config.currency}`);
     const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
@@ -120,15 +148,17 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     const backendUrl = `${protocol}://${host}`;
 
     const lineItems = items.map((item: any) => {
-      let imageUrl = item.image;
+      const imageUrl = toRemoteUrl(item.image, backendUrl);
 
-      if (imageUrl && imageUrl.startsWith('/api')) {
-        imageUrl = `${backendUrl}${imageUrl}`;
-      }
+      // Stripe only accepts valid absolute URLs for images.
+      const isValidUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+      const originalDesignUrl = toRemoteUrl(item.customization?.originalDesign, backendUrl);
+      const safeCustomization = item.customization ? {
+        ...item.customization,
+        originalDesign: originalDesignUrl || undefined,
+      } : undefined;
 
-      // Stripe only accepts valid absolute URLs for images. 
-      // Omit if it doesn't look like a valid URL or is a data URL.
-      const isValidUrl = imageUrl && imageUrl.startsWith('http') && !imageUrl.includes('data:image');
+      const designImageUrl = originalDesignUrl || imageUrl;
 
       return {
         price_data: {
@@ -140,6 +170,11 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
           unit_amount: Math.round(item.price), // stored as cents
         },
         quantity: item.quantity,
+        metadata: {
+          customization: safeCustomization ? JSON.stringify(safeCustomization).slice(0, 480) : "",
+          designImage: designImageUrl || "",
+          productImage: imageUrl || "",
+        },
       };
     });
 
@@ -150,12 +185,22 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
           currency: config.currency,
           product_data: {
             name: "Doorstep Delivery Fee",
+            images: [],
           },
           unit_amount: 500, // ₹5.00
         },
-        quantity: 1
+        quantity: 1,
+        metadata: {
+          customization: "",
+          designImage: "",
+          productImage: ""
+        }
       });
     }
+
+    // Stripe metadata values cannot exceed 500 characters each.
+    const customizationInfo = items[0]?.customization ? JSON.stringify(items[0].customization) : "";
+    const safeCustomizationInfo = customizationInfo.length > 480 ? customizationInfo.slice(0, 480) : customizationInfo;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -171,9 +216,8 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
         addressStreet: fulfillment.address?.street || "",
         addressCity: fulfillment.address?.city || "",
         addressZip: fulfillment.address?.zip || "",
-        // Store customization info as JSON string for the first item (assuming single item for now)
-        customizationInfo: items[0]?.customization ? JSON.stringify(items[0].customization) : "",
-        productImage: items[0]?.image || ""
+        customizationInfo: safeCustomizationInfo,
+        productImage: toRemoteUrl(items[0]?.image) || ""
       },
     });
 
@@ -243,8 +287,13 @@ const verifySession = async (req: Request, res: Response) => {
 
     // Create New Order
     const metadata = session.metadata || {};
+    const backendOrigin = `${req.protocol}://${req.get('host')}`;
     const customizationInfo = metadata.customizationInfo ? JSON.parse(metadata.customizationInfo) : null;
-    const productImage = metadata.productImage || "";
+    const normalizedCustomization = customizationInfo ? {
+      ...customizationInfo,
+      originalDesign: toRemoteUrl(customizationInfo.originalDesign, backendOrigin) || undefined,
+    } : null;
+    const productImage = toRemoteUrl(metadata.productImage, backendOrigin) || "";
 
     const lineItems = await stripe.checkout.sessions.listLineItems(sessionId);
     const orderItems = lineItems.data.map((li, index) => ({
@@ -252,7 +301,7 @@ const verifySession = async (req: Request, res: Response) => {
       quantity: li.quantity || 1,
       price: (li.price?.unit_amount ? li.price.unit_amount / 100 : (li.amount_total / (li.quantity || 1)) / 100),
       // Only attach to the first item (design-related)
-      customization: index === 0 ? customizationInfo : undefined,
+      customization: index === 0 ? normalizedCustomization : undefined,
       image: index === 0 ? productImage : undefined
     }));
 

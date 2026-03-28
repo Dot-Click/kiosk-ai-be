@@ -484,6 +484,55 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     );
   }
 };
+
+// Public Order Tracking (by order number)
+export const trackOrder = async (req: Request, res: Response) => {
+  try {
+    await ensureMongooseConnected();
+
+    let orderNumber = String(req.params.orderNumber || req.query.orderNumber || "").trim();
+    if (!orderNumber) {
+      return ErrorHandler.handleError(new ApiError(400, "Order number is required"), req, res);
+    }
+
+    let order = await Order.findOne({ orderNumber });
+
+    if (!order && mongoose.Types.ObjectId.isValid(orderNumber)) {
+      try {
+        order = await Order.findById(orderNumber);
+      } catch (err) {
+        console.error("ObjectId find error in trackOrder:", err);
+      }
+    }
+
+    if (!order) {
+      return ErrorHandler.handleError(new ApiError(404, "Order not found"), req, res);
+    }
+
+    const responseData = {
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paymentStatus: order.payment?.status ?? "pending",
+      amount: order.payment?.amount ?? 0,
+      currency: order.payment?.currency ?? "inr",
+      customer: order.customer,
+      items: order.items,
+      fulfillment: order.fulfillment,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+    };
+
+    return SuccessHandler.handle(res, "Order status retrieved", responseData, 200);
+  } catch (error: any) {
+    console.error("Track order error:", error);
+    return ErrorHandler.handleError(
+      new ApiError(500, error.message || "Internal server error"),
+      req,
+      res
+    );
+  }
+};
+
 // Update Order Status
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import uploadRouter from './upload';
 import qrRouter from './qr';
+import * as adminController from '../controllers/adminController';
 
 const router = Router();
 
@@ -17,5 +18,9 @@ router.get('/health', (req, res) => {
     version: '1.0.0'
   });
 });
+
+
+// Public order tracking route
+router.get('/track/:orderNumber', adminController.trackOrder);
 
 export default router;
