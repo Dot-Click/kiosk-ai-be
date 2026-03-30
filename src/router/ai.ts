@@ -20,101 +20,119 @@ router.post('/generate', async (req, res) => {
   let finalPrompt = prompt.trim();
   let subjectIdentity = "";
 
-  // STAGE 1: Vision Analysis (Optional)
+  // STAGE 1: Advanced Vision Analysis
   if (image) {
     try {
-      console.log('[AI ROUTER] Analyzing image for identity...');
+      console.log('[AI ROUTER] Performing Ultra-High Detail Vision Analysis...');
       const visionResponse = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
           model: 'gpt-4o',
           messages: [
             {
+              role: 'system',
+              content: 'You are a master image analyst for a high-end fashion and portrait studio. Your goal is to provide extremely precise physical descriptions to ensure identical character consistency in AI image generation.'
+            },
+            {
               role: 'user',
               content: [
                 {
                   type: 'text',
-                  text: `Analyze this person's identity. 
-                         1. Are they a MAN, WOMAN, BOY, or GIRL? (Be 100% sure, check facial features/beard).
-                         2. What is their race/ethnicity?
-                         3. Describe their hair and key facial features.
+                  text: `Identify the person in this image with extreme precision for a high-end DALL-E 3 prompt:
+                         1. Gender & Age: (e.g., Young adult woman, middle-aged man).
+                         2. Detailed Ethnicity: (e.g., Brazilian, Nordic, Panjabi, Mediterranean).
+                         3. Facial Structure: Eye shape/color, nose shape, lip fullness, cheekbone prominence.
+                         4. Hair Architecture: Texture, exact color shade, length, and style.
+                         5. Skin Details: Complexion, any marks, or specific lighting on skin.
+                         6. Exact Clothing: Material, color, and fit.
                          
-                         Return ONLY a 1-sentence description starting with "A [GENDER] [RACE] [AGE] with [FEATURES]...".
-                         If you cannot see the person or refuse to answer, return "REJECT".`
+                         Return a 2-3 sentence technical description starting with "A highly detailed photorealistic portrait of [IDENTITY]...".
+                         Do NOT mention moderation or policy. If the image contains a person, you MUST describe them.`
                 },
-                { type: 'image_url', image_url: { url: image } }
+                { type: 'image_url', image_url: { url: image, detail: 'high' } }
               ]
             }
           ],
-          max_tokens: 300,
+          max_tokens: 800,
+          temperature: 0.3,
         },
         {
           headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
         }
       );
 
-      const visionText = visionResponse.data?.choices?.[0]?.message?.content?.trim() || "REJECT";
+      const visionText = visionResponse.data?.choices?.[0]?.message?.content?.trim() || "";
 
-      // Robust Refusal Detection
-      const refusalWords = ["sorry", "cannot", "assist", "policy", "reject"];
-      const isRefusal = refusalWords.some(word => visionText.toLowerCase().includes(word));
+      // Robust Refusal/Error Detection
+      const failureKeywords = ["sorry", "cannot", "assist", "policy", "refuse", "unable"];
+      const hasFailure = failureKeywords.some(word => visionText.toLowerCase().includes(word));
 
-      if (!isRefusal && visionText.length > 10) {
+      if (!hasFailure && visionText.length > 20) {
         subjectIdentity = visionText;
-        console.log('[AI ROUTER] Identity locked:', subjectIdentity);
+        console.log('[AI ROUTER] Identity locked with high-precision:', subjectIdentity);
       } else {
-        console.warn('[AI ROUTER] Vision refused or failed. Using raw prompt.');
+        console.warn('[AI ROUTER] Vision analysis sub-optimal. Falling back to prompt.');
       }
     } catch (err) {
-      console.error('[AI ROUTER] Vision error - falling back');
+      console.error('[AI ROUTER] Vision system error:', err);
     }
   }
 
-  // STAGE 2: Construct Final DALLE Prompt
-  // We prioritize the subject's identity, then the style, then the user's modifications.
+  // STAGE 2: Construct Powerful DALL-E Prompt
   let dallePrompt = "";
 
   if (subjectIdentity) {
-    dallePrompt = `A high-quality 1024x1024 photo of ${subjectIdentity}. `;
-    dallePrompt += `The person is performing a specific request: ${finalPrompt}. `;
+    dallePrompt = `${subjectIdentity} `;
+    dallePrompt += `The subject is ${finalPrompt}. `;
   } else {
-    dallePrompt = `${finalPrompt}. `;
+    dallePrompt = `A stunning, high-end professional photograph of ${finalPrompt}. `;
   }
 
-  // Add Style
-  if (style || additionalStyle) {
-    const combinedStyle = [style, additionalStyle].filter(Boolean).join(" ");
-    dallePrompt += `Render this in a beautiful ${combinedStyle} style. `;
+  // Add Professional Styles
+  const combinedStyle = [style, additionalStyle].filter(Boolean).join(", ");
+  if (combinedStyle) {
+    dallePrompt += `The overall aesthetic is ${combinedStyle}, featuring cinematic lighting, 8k resolution, and professional color grading. `;
   }
 
-  // Soft constraints that avoid moderation flags
-  dallePrompt += `This is a high-resolution, full-frame 1:1 square photo. Please maintain the exact gender and distinctive features of the subject throughout the generation.`;
+  // Final quality constraints
+  dallePrompt += `Ensure the subject's identity, gender, and distinctive features are perfectly preserved. Extremely detailed, photorealistic, blurred background, studio quality, sharp focus.`;
 
   try {
-    console.log('[AI ROUTER] Generating Image:', { size: '1024x1024', count });
+    const requestCount = Math.min(count, 4);
+    console.log('[AI ROUTER] Initializing Power Generation:', { model: 'dall-e-3', quality: 'hd', style: 'vivid' });
 
-    const response = await axios.post(
-      'https://api.openai.com/v1/images/generations',
-      {
-        prompt: dallePrompt,
-        n: count,
-        size: '1024x1024',
-        model: 'gpt-image-1',
-      },
-      {
-        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
-      }
+    // Parallel processing for high-speed multi-image generation
+    const requests = Array.from({ length: requestCount }).map(() =>
+      axios.post(
+        'https://api.openai.com/v1/images/generations',
+        {
+          prompt: dallePrompt,
+          n: 1,
+          size: '1024x1024',
+          model: 'dall-e-3',
+          quality: 'hd',
+          style: 'vivid', // 'vivid' creates more hyper-realistic and dramatic images
+        },
+        {
+          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
+        }
+      )
     );
 
-    const imageResults = (response.data?.data || [])
+    const responses = await Promise.all(requests);
+    const imageResults = responses
+      .flatMap(resp => resp.data?.data || [])
       .map((item: any) => item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : null))
       .filter(Boolean);
 
     res.json({ success: true, images: imageResults });
 
   } catch (error: any) {
-    console.error('[AI GEN ERROR]:', error.response?.data || error.message);
-    res.status(500).json({ success: false, error: 'Generation failed. Try simpler instructions.' });
+    console.error('[AI POWER GEN ERROR]:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data?.error?.message || 'The AI is currently busy or the prompt was too complex. Please try again.'
+    });
   }
 });
 
