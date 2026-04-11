@@ -21,13 +21,13 @@ import qrRoutes from './router/qr';
 import uploadRoutes from './router/upload';
 import { cleanupOldFiles } from './controllers/uploadController';
 import { imageCorsMiddleware } from './middleware/imageCors';
-import { trackOrder } from './controllers/adminController';
 import productRoutes from "./router/product";
 import adminRoutes from "./router/admin";
 import stripeSettingsRoutes from "./router/stripeSettings";
 import paymentRoutes from "./router/payment";
 import authRoutes from "./router/auth";
 import aiRoutes from "./router/ai";
+import trackingRoutes from "./router/orderTracking";
 
 const app: Application = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -82,9 +82,9 @@ app.use("/api/v1/auth", authRoutes);
 // AI image generation endpoints (requires OPENAI_API_KEY in environment)
 app.use("/api/ai", aiRoutes);
 
-// Public order tracking endpoint
-app.get('/api/track/:orderNumber', trackOrder);
-app.get('/api/track', trackOrder); // supports query: /api/track?orderNumber=123
+// Public order tracking routes
+app.use("/api/track", trackingRoutes);
+app.use("/api/v1/track", trackingRoutes);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

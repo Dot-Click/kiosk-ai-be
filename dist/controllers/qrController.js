@@ -19,11 +19,32 @@ const db_1 = require("../config/db");
 const qrCodes = new Map();
 const generateQR = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { data = 'kiosk-upload' } = req.body;
-        const code = Date.now().toString();
-        const uploadUrl = `https://kiosk-ai.vercel.app/upload?code=${code}`;
-        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uploadUrl)}`;
-        console.log(`✅ QR generated for code: ${code}`);
+        const { data: requestedData } = req.body;
+        // Use 6-digit code for better QR scanning reliability on mobile
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Try to detect the frontend origin from headers, fallback to env or default
+        const originHeader = req.headers.origin;
+        const refererHeader = req.headers.referer;
+        let frontendUrl = process.env.FRONTEND_URL || 'https://kiosk-ai.vercel.app';
+        if (originHeader) {
+            frontendUrl = originHeader;
+        }
+        else if (refererHeader) {
+            try {
+                const refUrl = new URL(refererHeader);
+                frontendUrl = `${refUrl.protocol}//${refUrl.host}`;
+            }
+            catch (e) { }
+        }
+        // Ensure no trailing slash
+        frontendUrl = frontendUrl.replace(/\/$/, '');
+        const uploadUrl = `${frontendUrl}/upload?code=${code}`;
+        // Use a larger size and higher error correction for better scanning
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(uploadUrl)}&ecc=H`;
+        console.log(`✅ QR generated:
+       Code: ${code}
+       Frontend: ${frontendUrl}
+       Full URL: ${uploadUrl}`);
         const qrData = {
             code,
             uploadUrl,

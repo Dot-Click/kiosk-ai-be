@@ -56,13 +56,13 @@ const qr_1 = __importDefault(require("./router/qr"));
 const upload_1 = __importDefault(require("./router/upload"));
 const uploadController_1 = require("./controllers/uploadController");
 const imageCors_1 = require("./middleware/imageCors");
-const adminController_1 = require("./controllers/adminController");
 const product_1 = __importDefault(require("./router/product"));
 const admin_1 = __importDefault(require("./router/admin"));
 const stripeSettings_1 = __importDefault(require("./router/stripeSettings"));
 const payment_1 = __importDefault(require("./router/payment"));
 const auth_1 = __importDefault(require("./router/auth"));
 const ai_1 = __importDefault(require("./router/ai"));
+const orderTracking_1 = __importDefault(require("./router/orderTracking"));
 const app = (0, express_1.default)();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 // Middleware
@@ -107,9 +107,9 @@ app.use("/api/auth", auth_1.default);
 app.use("/api/v1/auth", auth_1.default);
 // AI image generation endpoints (requires OPENAI_API_KEY in environment)
 app.use("/api/ai", ai_1.default);
-// Public order tracking endpoint
-app.get('/api/track/:orderNumber', adminController_1.trackOrder);
-app.get('/api/track', adminController_1.trackOrder); // supports query: /api/track?orderNumber=123
+// Public order tracking routes
+app.use("/api/track", orderTracking_1.default);
+app.use("/api/v1/track", orderTracking_1.default);
 // Health check
 app.get('/health', (req, res) => {
     res.json({

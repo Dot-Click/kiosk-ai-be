@@ -259,6 +259,41 @@ export async function closeDB() {
   }
 }
 
+export async function ensureMongooseConnected() {
+  // If already connected, return immediately
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  // If connecting, wait for it
+  if (mongoose.connection.readyState === 2) {
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Mongoose connection timeout"));
+      }, 10000);
+
+      mongoose.connection.once('connected', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      mongoose.connection.once('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
+  }
+
+  // If disconnected or uninitialized, connect now
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
+    throw new Error("MONGODB_URI not set");
+  }
+
+  // Reuse the connectDB logic to ensure full initialization
+  await connectDB();
+}
+
 export function isMongooseConnected() {
   return mongooseConnected && mongoose.connection.readyState === 1;
 }

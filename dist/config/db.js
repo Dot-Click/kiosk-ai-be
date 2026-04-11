@@ -18,6 +18,7 @@ exports.connectDB = connectDB;
 exports.getDB = getDB;
 exports.isDBConnected = isDBConnected;
 exports.closeDB = closeDB;
+exports.ensureMongooseConnected = ensureMongooseConnected;
 exports.isMongooseConnected = isMongooseConnected;
 // dotenv.config();
 // const mongoUri = process.env.MONGODB_URI;
@@ -238,6 +239,37 @@ function closeDB() {
             db = null;
             mongoClient = null;
         }
+    });
+}
+function ensureMongooseConnected() {
+    return __awaiter(this, void 0, void 0, function* () {
+        // If already connected, return immediately
+        if (mongoose_1.default.connection.readyState === 1) {
+            return;
+        }
+        // If connecting, wait for it
+        if (mongoose_1.default.connection.readyState === 2) {
+            return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error("Mongoose connection timeout"));
+                }, 10000);
+                mongoose_1.default.connection.once('connected', () => {
+                    clearTimeout(timeout);
+                    resolve();
+                });
+                mongoose_1.default.connection.once('error', (err) => {
+                    clearTimeout(timeout);
+                    reject(err);
+                });
+            });
+        }
+        // If disconnected or uninitialized, connect now
+        const mongoUri = process.env.MONGODB_URI;
+        if (!mongoUri) {
+            throw new Error("MONGODB_URI not set");
+        }
+        // Reuse the connectDB logic to ensure full initialization
+        yield connectDB();
     });
 }
 function isMongooseConnected() {
