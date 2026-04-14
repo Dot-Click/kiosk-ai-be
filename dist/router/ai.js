@@ -14,6 +14,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const axios_1 = __importDefault(require("axios"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const uuid_1 = require("uuid");
+const db_1 = require("../config/db");
 const router = (0, express_1.Router)();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 // Log initialization
@@ -114,10 +118,55 @@ router.post('/generate', (req, res) => __awaiter(void 0, void 0, void 0, functio
             headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
         }));
         const responses = yield Promise.all(requests);
-        const imageResults = responses
+        const rawUrls = responses
             .flatMap(resp => { var _a; return ((_a = resp.data) === null || _a === void 0 ? void 0 : _a.data) || []; })
-            .map((item) => item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : null))
+            .map((item) => item.url)
             .filter(Boolean);
+        // PERSISTENCE: Download images to our own server to avoid CORS and expiration issues
+        const imageResults = [];
+        const uploadDir = path_1.default.join(process.cwd(), 'uploads');
+        // Ensure upload directory exists
+        if (!fs_1.default.existsSync(uploadDir)) {
+            fs_1.default.mkdirSync(uploadDir, { recursive: true });
+        }
+        for (const url of rawUrls) {
+            try {
+                const imageResponse = yield axios_1.default.get(url, { responseType: 'arraybuffer' });
+                const buffer = Buffer.from(imageResponse.data, 'binary');
+                const fileName = `${(0, uuid_1.v4)()}.png`;
+                const filePath = path_1.default.join(uploadDir, fileName);
+                const code = `ai-${(0, uuid_1.v4)().substring(0, 8)}`;
+                fs_1.default.writeFileSync(filePath, buffer);
+                const host = req.get('host');
+                const protocol = req.protocol;
+                const localUrl = `${protocol}://${host}/api/v1/upload/image/${code}`;
+                // Register in database so /image/:code can find it
+                const db = (0, db_1.getDB)();
+                const uploadData = {
+                    code,
+                    imageUrl: localUrl,
+                    fileName: fileName,
+                    originalName: 'ai-generated.png',
+                    filePath: filePath,
+                    fileSize: buffer.length,
+                    mimeType: 'image/png',
+                    uploadedAt: new Date(),
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+                    status: 'uploaded',
+                    uploadedBy: 'ai-generator'
+                };
+                if (db) {
+                    yield db.collection('uploads').insertOne(uploadData);
+                }
+                imageResults.push(localUrl);
+                console.log(`[AI ROUTER] Persisted AI image: ${code}`);
+            }
+            catch (err) {
+                console.error('[AI ROUTER] Failed to persist image:', err);
+                // Fallback to raw URL if persistence fails
+                imageResults.push(url);
+            }
+        }
         res.json({ success: true, images: imageResults });
     }
     catch (error) {

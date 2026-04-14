@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { getDB } from '../config/db';
 
 const router = Router();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -120,10 +124,63 @@ router.post('/generate', async (req, res) => {
     );
 
     const responses = await Promise.all(requests);
-    const imageResults = responses
+    const rawUrls = responses
       .flatMap(resp => resp.data?.data || [])
-      .map((item: any) => item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : null))
+      .map((item: any) => item.url)
       .filter(Boolean);
+
+    // PERSISTENCE: Download images to our own server to avoid CORS and expiration issues
+    const imageResults = [];
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    
+    // Ensure upload directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    for (const url of rawUrls) {
+      try {
+        const imageResponse = await axios.get(url, { responseType: 'arraybuffer' });
+        const buffer = Buffer.from(imageResponse.data, 'binary');
+        
+        const fileName = `${uuidv4()}.png`;
+        const filePath = path.join(uploadDir, fileName);
+        const code = `ai-${uuidv4().substring(0, 8)}`;
+        
+        fs.writeFileSync(filePath, buffer);
+        
+        const host = req.get('host');
+        const protocol = req.protocol;
+        const localUrl = `${protocol}://${host}/api/v1/upload/image/${code}`;
+        
+        // Register in database so /image/:code can find it
+        const db = getDB();
+        const uploadData = {
+          code,
+          imageUrl: localUrl,
+          fileName: fileName,
+          originalName: 'ai-generated.png',
+          filePath: filePath,
+          fileSize: buffer.length,
+          mimeType: 'image/png',
+          uploadedAt: new Date(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          status: 'uploaded',
+          uploadedBy: 'ai-generator'
+        };
+
+        if (db) {
+          await db.collection('uploads').insertOne(uploadData);
+        }
+        
+        imageResults.push(localUrl);
+        console.log(`[AI ROUTER] Persisted AI image: ${code}`);
+      } catch (err) {
+        console.error('[AI ROUTER] Failed to persist image:', err);
+        // Fallback to raw URL if persistence fails
+        imageResults.push(url);
+      }
+    }
 
     res.json({ success: true, images: imageResults });
 
