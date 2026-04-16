@@ -150,7 +150,7 @@ router.post('/generate', async (req, res) => {
         fs.writeFileSync(filePath, buffer);
         
         const host = req.get('host');
-        const protocol = req.protocol;
+        const protocol = host?.includes('localhost') ? req.protocol : 'https';
         const localUrl = `${protocol}://${host}/api/v1/upload/image/${code}`;
         
         // Register in database so /image/:code can find it
@@ -172,6 +172,10 @@ router.post('/generate', async (req, res) => {
         if (db) {
           await db.collection('uploads').insertOne(uploadData);
         }
+        
+        // Also keep in memory as fallback (helps if DB is slow or connection blips)
+        const { uploads } = require('../controllers/uploadController');
+        uploads.set(code, uploadData);
         
         imageResults.push(localUrl);
         console.log(`[AI ROUTER] Persisted AI image: ${code}`);

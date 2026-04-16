@@ -5,14 +5,18 @@ const imageCorsMiddleware = (req, res, next) => {
     // For images, we need more permissive CORS
     const allowedImageOrigins = [
         'https://kiosk-ai.vercel.app',
-        'http://localhost:3000'
+        'http://localhost:3000',
+        'http://localhost:4001',
+        'http://localhost:5173',
+        'http://127.0.0.1:4001',
+        'http://127.0.0.1:5173'
     ];
     const origin = req.headers.origin;
     if (origin && allowedImageOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
     }
     else {
-        // For images, sometimes we need to allow all
+        // For images, we strongly allow all to fix 3D texture loading issues
         res.setHeader('Access-Control-Allow-Origin', '*');
     }
     // Critical headers for images

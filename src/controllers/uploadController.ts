@@ -494,7 +494,7 @@ interface UploadData {
 }
 
 // In-memory storage fallback
-const uploads = new Map<string, UploadData>();
+export const uploads = new Map<string, UploadData>();
 
 export const uploadImage = async (req: Request, res: Response) => {
   try {
@@ -654,43 +654,63 @@ export const getImage = async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
     
+    // Set permissive CORS for textures
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    
     console.log(`📷 Getting image for code: ${code}`);
     
     let uploadData: UploadData | null = null;
     const db = getDB();
     
     if (db) {
-      const result = await db.collection('uploads').findOne({ code });
-      uploadData = result as UploadData;
-    } else {
+      try {
+        const result = await db.collection('uploads').findOne({ code });
+        uploadData = result as unknown as UploadData;
+      } catch (dbErr) {
+        console.error('DB error in getImage:', dbErr);
+      }
+    } 
+    
+    // Also check in-memory fallback
+    if (!uploadData) {
       uploadData = uploads.get(code) || null;
     }
     
-    // Redirect to Cloudinary URL if available
+    // 1. Handle Cloudinary
     if (uploadData?.cloudinaryUrl) {
+      // Instead of redirecting (which breaks CORS), we can try to proxy it or 
+      // just redirect and hope the client handles it (but texture loader usually fails).
+      // For best results with Three.js, we should redirect but ensure CORS headers are set.
       return res.redirect(uploadData.cloudinaryUrl);
     }
     
-    // Serve local file
-    if (uploadData && fs.existsSync(uploadData.filePath)) {
-      res.setHeader('Content-Type', uploadData.mimeType);
+    // 2. Serve local file
+    if (uploadData && uploadData.filePath && fs.existsSync(uploadData.filePath)) {
+      const mimeType = uploadData.mimeType || 'image/png';
+      res.setHeader('Content-Type', mimeType);
       const fileStream = fs.createReadStream(uploadData.filePath);
       fileStream.pipe(res);
       
       fileStream.on('error', (err) => {
         console.error('File stream error:', err);
-        res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+        if (!res.headersSent) {
+          res.status(404).end();
+        }
       });
       return;
     }
     
-    // Return placeholder
-    console.log(`⚠️ No image found for code: ${code}, using placeholder`);
-    res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image');
+    // 3. Fallback / Not found
+    console.log(`⚠️ No image found for code: ${code}, returning 404`);
+    res.status(404).send('Image not found');
     
   } catch (error: any) {
     console.error('❌ Get image error:', error);
-    res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+    if (!res.headersSent) {
+      res.status(500).send('Internal Server Error');
+    }
   }
 };
 

@@ -124,6 +124,17 @@ setInterval(cleanupOldFiles, 6 * 60 * 60 * 1000);
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: any) => {
   console.error('[Global Error]', err);
+  
+  // Ensure CORS headers are present even on errors
+  const origin = req.get('origin');
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal Server Error'

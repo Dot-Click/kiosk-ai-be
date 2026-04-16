@@ -19,13 +19,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupOldFiles = exports.getImage = exports.checkUpload = exports.uploadImage = void 0;
+exports.cleanupOldFiles = exports.getImage = exports.checkUpload = exports.uploadImage = exports.uploads = void 0;
 const db_1 = require("../config/db");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const cloudinary_1 = require("../utils/cloudinary");
 // In-memory storage fallback
-const uploads = new Map();
+exports.uploads = new Map();
 const uploadImage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { code } = req.body;
@@ -83,7 +83,7 @@ const uploadImage = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             console.log(`💾 Saved to database for code: ${code}`);
         }
         else {
-            uploads.set(code, uploadData);
+            exports.uploads.set(code, uploadData);
             console.log(`⚠️  No database, storing in memory for code: ${code}`);
         }
         res.status(200).json({
@@ -120,7 +120,7 @@ const checkUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             uploadData = result;
         }
         else {
-            uploadData = uploads.get(code) || null;
+            uploadData = exports.uploads.get(code) || null;
         }
         if (uploadData) {
             // Check if file still exists locally (if not using Cloudinary)
@@ -174,38 +174,56 @@ exports.checkUpload = checkUpload;
 const getImage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { code } = req.params;
+        // Set permissive CORS for textures
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
         console.log(`📷 Getting image for code: ${code}`);
         let uploadData = null;
         const db = (0, db_1.getDB)();
         if (db) {
-            const result = yield db.collection('uploads').findOne({ code });
-            uploadData = result;
+            try {
+                const result = yield db.collection('uploads').findOne({ code });
+                uploadData = result;
+            }
+            catch (dbErr) {
+                console.error('DB error in getImage:', dbErr);
+            }
         }
-        else {
-            uploadData = uploads.get(code) || null;
+        // Also check in-memory fallback
+        if (!uploadData) {
+            uploadData = exports.uploads.get(code) || null;
         }
-        // Redirect to Cloudinary URL if available
+        // 1. Handle Cloudinary
         if (uploadData === null || uploadData === void 0 ? void 0 : uploadData.cloudinaryUrl) {
+            // Instead of redirecting (which breaks CORS), we can try to proxy it or 
+            // just redirect and hope the client handles it (but texture loader usually fails).
+            // For best results with Three.js, we should redirect but ensure CORS headers are set.
             return res.redirect(uploadData.cloudinaryUrl);
         }
-        // Serve local file
-        if (uploadData && fs_1.default.existsSync(uploadData.filePath)) {
-            res.setHeader('Content-Type', uploadData.mimeType);
+        // 2. Serve local file
+        if (uploadData && uploadData.filePath && fs_1.default.existsSync(uploadData.filePath)) {
+            const mimeType = uploadData.mimeType || 'image/png';
+            res.setHeader('Content-Type', mimeType);
             const fileStream = fs_1.default.createReadStream(uploadData.filePath);
             fileStream.pipe(res);
             fileStream.on('error', (err) => {
                 console.error('File stream error:', err);
-                res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+                if (!res.headersSent) {
+                    res.status(404).end();
+                }
             });
             return;
         }
-        // Return placeholder
-        console.log(`⚠️ No image found for code: ${code}, using placeholder`);
-        res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Uploaded+Image');
+        // 3. Fallback / Not found
+        console.log(`⚠️ No image found for code: ${code}, returning 404`);
+        res.status(404).send('Image not found');
     }
     catch (error) {
         console.error('❌ Get image error:', error);
-        res.redirect('https://via.placeholder.com/400x300/2d2d6d/ffffff?text=Error');
+        if (!res.headersSent) {
+            res.status(500).send('Internal Server Error');
+        }
     }
 });
 exports.getImage = getImage;
