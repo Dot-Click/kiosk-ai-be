@@ -1,9 +1,5 @@
 import { Router } from 'express';
 import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { getDB } from '../config/db';
 
 const router = Router();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -103,7 +99,7 @@ router.post('/generate', async (req, res) => {
 
   try {
     const requestCount = Math.min(count, 4);
-    console.log('[AI ROUTER] Initializing Power Generation:', { model: 'dall-e-3', quality: 'hd', style: 'vivid' });
+    console.log('[AI ROUTER] Initializing Power Generation:', { model: 'gpt-image-1', quality: 'high' });
 
     // Parallel processing for high-speed multi-image generation
     const requests = Array.from({ length: requestCount }).map(() =>
@@ -113,9 +109,8 @@ router.post('/generate', async (req, res) => {
           prompt: dallePrompt,
           n: 1,
           size: '1024x1024',
-          model: 'dall-e-3',
-          quality: 'hd',
-          style: 'vivid', // 'vivid' creates more hyper-realistic and dramatic images
+          model: 'gpt-image-1',
+          quality: 'high',
         },
         {
           headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
@@ -124,67 +119,14 @@ router.post('/generate', async (req, res) => {
     );
 
     const responses = await Promise.all(requests);
-    const rawUrls = responses
+    console.log('[AI ROUTER] Raw OpenAI response:', JSON.stringify(responses.map(r => r.data), null, 2));
+
+    const rawB64s = responses
       .flatMap(resp => resp.data?.data || [])
-      .map((item: any) => item.url)
+      .map((item: any) => item.b64_json)
       .filter(Boolean);
 
-    // PERSISTENCE: Download images to our own server to avoid CORS and expiration issues
-    const imageResults = [];
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    
-    // Ensure upload directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    for (const url of rawUrls) {
-      try {
-        const imageResponse = await axios.get(url, { responseType: 'arraybuffer' });
-        const buffer = Buffer.from(imageResponse.data, 'binary');
-        
-        const fileName = `${uuidv4()}.png`;
-        const filePath = path.join(uploadDir, fileName);
-        const code = `ai-${uuidv4().substring(0, 8)}`;
-        
-        fs.writeFileSync(filePath, buffer);
-        
-        const host = req.get('host');
-        const protocol = host?.includes('localhost') ? req.protocol : 'https';
-        const localUrl = `${protocol}://${host}/api/v1/upload/image/${code}`;
-        
-        // Register in database so /image/:code can find it
-        const db = getDB();
-        const uploadData = {
-          code,
-          imageUrl: localUrl,
-          fileName: fileName,
-          originalName: 'ai-generated.png',
-          filePath: filePath,
-          fileSize: buffer.length,
-          mimeType: 'image/png',
-          uploadedAt: new Date(),
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-          status: 'uploaded',
-          uploadedBy: 'ai-generator'
-        };
-
-        if (db) {
-          await db.collection('uploads').insertOne(uploadData);
-        }
-        
-        // Also keep in memory as fallback (helps if DB is slow or connection blips)
-        const { uploads } = require('../controllers/uploadController');
-        uploads.set(code, uploadData);
-        
-        imageResults.push(localUrl);
-        console.log(`[AI ROUTER] Persisted AI image: ${code}`);
-      } catch (err) {
-        console.error('[AI ROUTER] Failed to persist image:', err);
-        // Fallback to raw URL if persistence fails
-        imageResults.push(url);
-      }
-    }
+    const imageResults = rawB64s.map(b64 => `data:image/png;base64,${b64}`);
 
     res.json({ success: true, images: imageResults });
 

@@ -14,10 +14,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const axios_1 = __importDefault(require("axios"));
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const uuid_1 = require("uuid");
-const db_1 = require("../config/db");
 const router = (0, express_1.Router)();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 // Log initialization
@@ -105,71 +101,24 @@ router.post('/generate', (req, res) => __awaiter(void 0, void 0, void 0, functio
     dallePrompt += `Ensure the subject's identity, gender, and distinctive features are perfectly preserved. Extremely detailed, photorealistic, blurred background, studio quality, sharp focus.`;
     try {
         const requestCount = Math.min(count, 4);
-        console.log('[AI ROUTER] Initializing Power Generation:', { model: 'dall-e-3', quality: 'hd', style: 'vivid' });
+        console.log('[AI ROUTER] Initializing Power Generation:', { model: 'gpt-image-1', quality: 'high' });
         // Parallel processing for high-speed multi-image generation
         const requests = Array.from({ length: requestCount }).map(() => axios_1.default.post('https://api.openai.com/v1/images/generations', {
             prompt: dallePrompt,
             n: 1,
             size: '1024x1024',
-            model: 'dall-e-3',
-            quality: 'hd',
-            style: 'vivid', // 'vivid' creates more hyper-realistic and dramatic images
+            model: 'gpt-image-1',
+            quality: 'high',
         }, {
             headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
         }));
         const responses = yield Promise.all(requests);
-        const rawUrls = responses
+        console.log('[AI ROUTER] Raw OpenAI response:', JSON.stringify(responses.map(r => r.data), null, 2));
+        const rawB64s = responses
             .flatMap(resp => { var _a; return ((_a = resp.data) === null || _a === void 0 ? void 0 : _a.data) || []; })
-            .map((item) => item.url)
+            .map((item) => item.b64_json)
             .filter(Boolean);
-        // PERSISTENCE: Download images to our own server to avoid CORS and expiration issues
-        const imageResults = [];
-        const uploadDir = path_1.default.join(process.cwd(), 'uploads');
-        // Ensure upload directory exists
-        if (!fs_1.default.existsSync(uploadDir)) {
-            fs_1.default.mkdirSync(uploadDir, { recursive: true });
-        }
-        for (const url of rawUrls) {
-            try {
-                const imageResponse = yield axios_1.default.get(url, { responseType: 'arraybuffer' });
-                const buffer = Buffer.from(imageResponse.data, 'binary');
-                const fileName = `${(0, uuid_1.v4)()}.png`;
-                const filePath = path_1.default.join(uploadDir, fileName);
-                const code = `ai-${(0, uuid_1.v4)().substring(0, 8)}`;
-                fs_1.default.writeFileSync(filePath, buffer);
-                const host = req.get('host');
-                const protocol = (host === null || host === void 0 ? void 0 : host.includes('localhost')) ? req.protocol : 'https';
-                const localUrl = `${protocol}://${host}/api/v1/upload/image/${code}`;
-                // Register in database so /image/:code can find it
-                const db = (0, db_1.getDB)();
-                const uploadData = {
-                    code,
-                    imageUrl: localUrl,
-                    fileName: fileName,
-                    originalName: 'ai-generated.png',
-                    filePath: filePath,
-                    fileSize: buffer.length,
-                    mimeType: 'image/png',
-                    uploadedAt: new Date(),
-                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-                    status: 'uploaded',
-                    uploadedBy: 'ai-generator'
-                };
-                if (db) {
-                    yield db.collection('uploads').insertOne(uploadData);
-                }
-                // Also keep in memory as fallback (helps if DB is slow or connection blips)
-                const { uploads } = require('../controllers/uploadController');
-                uploads.set(code, uploadData);
-                imageResults.push(localUrl);
-                console.log(`[AI ROUTER] Persisted AI image: ${code}`);
-            }
-            catch (err) {
-                console.error('[AI ROUTER] Failed to persist image:', err);
-                // Fallback to raw URL if persistence fails
-                imageResults.push(url);
-            }
-        }
+        const imageResults = rawB64s.map(b64 => `data:image/png;base64,${b64}`);
         res.json({ success: true, images: imageResults });
     }
     catch (error) {

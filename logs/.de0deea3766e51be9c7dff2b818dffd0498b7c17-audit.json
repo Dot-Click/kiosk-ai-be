@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\office-work\\kiosk\\kiosk-ai-be\\logs\\.de0deea3766e51be9c7dff2b818dffd0498b7c17-audit.json",
+    "files": [
+        {
+            "date": 1782104418886,
+            "name": "C:\\office-work\\kiosk\\kiosk-ai-be\\logs\\error-2026-06-22.log",
+            "hash": "ed7e13b4b7083f53a3967c2a809173e363de36e894f9c1586a2f3d6fa4767907"
+        }
+    ],
+    "hashType": "sha256"
+}
